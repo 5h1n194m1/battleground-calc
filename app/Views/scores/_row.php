@@ -30,7 +30,7 @@ $matchTotalValue = $score['total_point'] ?? '-';
                 <?= esc((string) $totalScore) ?>
             </div>
             <div class="col-md-2 text-end">
-                <button type="submit" class="btn btn-sm btn-success w-100">Simpan</button>
+                <span class="small text-muted d-inline-block w-100 text-center">Autosave</span>
             </div>
         </form>
     </td>

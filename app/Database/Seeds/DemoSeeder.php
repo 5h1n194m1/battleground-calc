@@ -12,6 +12,7 @@ class DemoSeeder extends Seeder
 
         $this->db->table('tournaments')->insert([
             'name'       => 'Battleground Community Cup',
+            'status'     => 'start',
             'created_at' => $now,
             'updated_at' => $now,
         ]);

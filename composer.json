@@ -39,6 +39,7 @@
         "sort-packages": true
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "serve": "php spark serve --host=localhost --port=9000"
     }
 }

@@ -53,6 +53,26 @@ if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
+if (
+    isset($argv[1]) &&
+    $argv[1] === 'serve' &&
+    ! in_array('--host', $argv, true) &&
+    ! array_filter($argv, static fn ($arg): bool => str_starts_with($arg, '--host='))
+) {
+    $argv[] = '--host';
+    $argv[] = 'localhost';
+}
+
+if (
+    isset($argv[1]) &&
+    $argv[1] === 'serve' &&
+    ! in_array('--port', $argv, true) &&
+    ! array_filter($argv, static fn ($arg): bool => str_starts_with($arg, '--port='))
+) {
+    $argv[] = '--port';
+    $argv[] = '9000';
+}
+
 /*
  *---------------------------------------------------------------
  * SET THE CURRENT DIRECTORY

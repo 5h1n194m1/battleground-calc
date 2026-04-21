@@ -13,7 +13,9 @@
 
     <main class="app-main py-3">
         <div class="container-fluid app-container px-3 px-xl-4">
-            <div id="ajaxFlashHost" class="app-flash-host"></div>
+            <div id="ajaxFlashHost" class="app-flash-host">
+                <?= $this->include('partials/flash') ?>
+            </div>
             <?= $this->renderSection('content') ?>
         </div>
     </main>
@@ -23,31 +25,6 @@
             csrfTokenName: '<?= esc(csrf_token()) ?>',
             csrfHash: '<?= esc(csrf_hash()) ?>',
             baseUrl: '<?= site_url('/') ?>',
-            idleTimeoutSeconds: 300,
-            idleLogoutUrl: '<?= site_url('logout') ?>',
-            idleTimer: null,
-
-            resetIdleTimer() {
-                if (!this.idleTimeoutSeconds || !this.idleLogoutUrl) {
-                    return;
-                }
-
-                window.clearTimeout(this.idleTimer);
-                this.idleTimer = window.setTimeout(() => {
-                    window.location.href = this.idleLogoutUrl;
-                }, this.idleTimeoutSeconds * 1000);
-            },
-
-            startIdleWatcher() {
-                const activityEvents = ['mousedown', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-                const reset = () => this.resetIdleTimer();
-
-                activityEvents.forEach((eventName) => {
-                    window.addEventListener(eventName, reset, { passive: true });
-                });
-
-                this.resetIdleTimer();
-            },
 
             ensureFormCsrf(form) {
                 if (!form || !this.csrfTokenName || !this.csrfHash) {
@@ -55,12 +32,20 @@
                 }
 
                 let input = form.querySelector(`input[name="${this.csrfTokenName}"]`);
+
                 if (!input) {
+                    form.querySelectorAll('input[type="hidden"]').forEach((hidden) => {
+                        if (/csrf/i.test(hidden.name || '')) {
+                            hidden.remove();
+                        }
+                    });
+
                     input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = this.csrfTokenName;
                     form.prepend(input);
                 }
+
                 input.value = this.csrfHash;
             },
 
@@ -73,12 +58,47 @@
                 });
             },
 
-            showFlash() {
-                return;
+            showFlash(message, type = 'success') {
+                const host = document.getElementById('ajaxFlashHost');
+                if (!host || !message) return;
+
+                const classMap = {
+                    success: 'alert-success',
+                    error: 'alert-danger',
+                    warning: 'alert-warning',
+                    info: 'alert-info'
+                };
+
+                const flash = document.createElement('div');
+                flash.className = `alert ${classMap[type] || 'alert-secondary'} alert-dismissible fade show ajax-flash`;
+                flash.setAttribute('role', 'alert');
+                flash.innerHTML = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                flash.prepend(document.createTextNode(message));
+                host.appendChild(flash);
+
+                window.BGApp.armFlash(flash);
+            },
+
+            armFlash(flash) {
+                if (!flash) return;
+
+                window.setTimeout(() => {
+                    flash.classList.add('is-hiding');
+                }, 3200);
+
+                window.setTimeout(() => {
+                    if (window.bootstrap?.Alert) {
+                        window.bootstrap.Alert.getOrCreateInstance(flash).close();
+                        return;
+                    }
+
+                    flash.remove();
+                }, 3800);
             },
 
             updateCsrf(tokenName, tokenHash) {
                 if (!tokenName || !tokenHash) return;
+
                 this.csrfTokenName = tokenName;
                 this.csrfHash = tokenHash;
                 this.syncAllPostForms();
@@ -87,16 +107,10 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             window.BGApp.syncAllPostForms();
-            window.BGApp.startIdleWatcher();
 
-            const scrollKey = 'bgcalc-scroll:' + window.location.pathname + window.location.search;
-            const savedScroll = window.sessionStorage.getItem(scrollKey);
-            if (savedScroll !== null) {
-                window.requestAnimationFrame(() => {
-                    window.scrollTo({ top: Number(savedScroll) || 0, left: 0, behavior: 'instant' });
-                    window.sessionStorage.removeItem(scrollKey);
-                });
-            }
+            document.querySelectorAll('#ajaxFlashHost .alert').forEach((flash) => {
+                window.BGApp.armFlash(flash);
+            });
         });
 
         document.addEventListener('submit', (event) => {

@@ -17,7 +17,7 @@ $path    = trim(service('request')->getUri()->getPath(), '/');
                 </li>
                 <?php if ($isAdmin): ?>
                     <li class="nav-item">
-                        <a class="nav-link <?= str_starts_with($path, 'tournaments') ? 'active' : '' ?>" href="<?= site_url('tournaments') ?>">Tournament</a>
+                        <a class="nav-link <?= str_starts_with($path, 'tournaments') ? 'active' : '' ?>" href="<?= site_url('dashboard') ?>">Management Event</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?= str_starts_with($path, 'imports/registrations') ? 'active' : '' ?>" href="<?= site_url('imports/registrations') ?>">Import Registrations</a>

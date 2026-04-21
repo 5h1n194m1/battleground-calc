@@ -35,6 +35,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE `tournaments` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(150) NOT NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'belum_mulai',
     `created_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
@@ -237,8 +238,8 @@ DELIMITER ;
 --     Hapus komentar kalau ingin langsung ada contoh data
 -- =========================================================
 
-INSERT INTO `tournaments` (`name`) VALUES
-('Battleground Demo Tournament');
+INSERT INTO `tournaments` (`name`, `status`) VALUES
+('Battleground Demo Tournament', 'start');
 
 INSERT INTO `pots` (`tournament_id`, `name`, `sort_order`) VALUES
 (1, 'POT 1', 1);

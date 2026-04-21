@@ -4,20 +4,23 @@ namespace App\Controllers;
 
 use App\Models\PotModel;
 use App\Models\TournamentModel;
+use App\Services\PotOrderService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 class PotController extends BaseController
 {
     private PotModel $potModel;
     private TournamentModel $tournamentModel;
+    private PotOrderService $potOrderService;
 
     public function __construct()
     {
         $this->potModel        = new PotModel();
         $this->tournamentModel = new TournamentModel();
+        $this->potOrderService = new PotOrderService($this->potModel);
     }
 
-    public function index(int $tournamentId): string
+    public function index(int $tournamentId)
     {
         $tournament = $this->tournamentModel->find($tournamentId);
 
@@ -25,85 +28,261 @@ class PotController extends BaseController
             throw PageNotFoundException::forPageNotFound('Tournament tidak ditemukan.');
         }
 
-        $pots = $this->potModel
-            ->select('pots.*')
-            ->select('(SELECT COUNT(*) FROM teams WHERE teams.pot_id = pots.id) AS team_count', false)
-            ->select('(SELECT COALESCE(SUM(scores.total_point), 0) FROM scores WHERE scores.pot_id = pots.id) AS total_score', false)
+        $pot = $this->potModel
             ->where('pots.tournament_id', $tournamentId)
             ->orderBy('pots.sort_order', 'ASC')
             ->orderBy('pots.name', 'ASC')
-            ->findAll();
+            ->first();
 
-        return view('pots/index', [
-            'pageTitle'  => 'Pot Tournament',
-            'tournament' => $tournament,
-            'pots'       => $pots,
-        ]);
+        if ($pot === null) {
+            if (! $this->isTournamentEditable($tournament)) {
+                return redirect()->to(site_url('dashboard'))->with('error', 'Tournament sudah finished. Pot baru tidak bisa dibuat.');
+            }
+
+            $potId = (int) $this->potModel->insert([
+                'tournament_id' => $tournamentId,
+                'name'          => 'POT 1',
+                'sort_order'    => 1,
+            ], true);
+
+            return redirect()
+                ->to(site_url('pots/' . $potId . '/scores'))
+                ->with('success', 'POT 1 otomatis dibuat agar Anda bisa langsung masuk ke kalkulator.');
+        }
+
+        return redirect()->to(site_url('pots/' . $pot['id'] . '/scores'));
     }
 
     public function store()
     {
-        $data = $this->request->getPost(['tournament_id', 'name', 'sort_order']);
+        $isAjax = $this->request->isAJAX();
+        $data = $this->request->getPost(['tournament_id', 'name', 'sort_order', 'redirect_to']);
 
         if (! $this->validateData($data, $this->rules())) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Data pot belum valid.')
-                ->with('validation', $this->validator->getErrors());
+            return $this->potErrorResponse('Data pot belum valid.', $isAjax, $this->validator->getErrors());
         }
 
         $tournamentId = (int) $data['tournament_id'];
         $tournament   = $this->tournamentModel->find($tournamentId);
 
         if ($tournament === null) {
-            return redirect()->back()->with('error', 'Tournament tujuan tidak ditemukan.');
+            return $this->potErrorResponse('Tournament tujuan tidak ditemukan.', $isAjax);
         }
 
-        $this->potModel->insert([
-            'tournament_id' => $tournamentId,
-            'name'          => trim((string) $data['name']),
-            'sort_order'    => (int) ($data['sort_order'] ?: 0),
-        ]);
+        if (! $this->isTournamentEditable($tournament)) {
+            return $this->potErrorResponse('Tournament sudah finished. Pot tidak bisa ditambah lagi.', $isAjax);
+        }
 
-        return redirect()->to(site_url('tournaments/' . $tournamentId . '/pots'))->with('success', 'Pot berhasil ditambahkan.');
+        $existingCount = $this->potModel->where('tournament_id', $tournamentId)->countAllResults();
+        $name = trim((string) ($data['name'] ?? ''));
+        $sortOrder = trim((string) ($data['sort_order'] ?? ''));
+
+        if ($name === '') {
+            $name = 'POT ' . ($existingCount + 1);
+        }
+
+        $potId = (int) $this->potModel->insert([
+            'tournament_id' => $tournamentId,
+            'name'          => $name,
+            'sort_order'    => $sortOrder === '' ? ($existingCount + 1) : (int) $sortOrder,
+        ], true);
+
+        $desiredOrder = $sortOrder === '' ? null : (int) $sortOrder;
+        $this->potOrderService->movePot($tournamentId, $potId, $desiredOrder);
+
+        $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
+        $targetUrl = $redirectTo !== '' ? $redirectTo : site_url('pots/' . $potId . '/scores');
+
+        if ($isAjax) {
+            return $this->response->setJSON([
+                'status'        => 'success',
+                'message'       => 'Pot berhasil ditambahkan.',
+                'redirectUrl'   => $targetUrl,
+                'potId'         => $potId,
+                'csrfTokenName' => csrf_token(),
+                'csrfHash'      => csrf_hash(),
+            ]);
+        }
+
+        if ($redirectTo !== '') {
+            if ($redirectTo === '__new_pot_scores__') {
+                return redirect()->to(site_url('pots/' . $potId . '/scores'))->with('success', 'Pot berhasil ditambahkan.');
+            }
+
+            return redirect()->to($redirectTo)->with('success', 'Pot berhasil ditambahkan.');
+        }
+
+        return redirect()->back()->with('success', 'Pot berhasil ditambahkan.');
     }
 
     public function update(int $id)
     {
+        $isAjax = $this->request->isAJAX();
         $pot = $this->potModel->find($id);
 
         if ($pot === null) {
             throw PageNotFoundException::forPageNotFound('Pot tidak ditemukan.');
         }
 
-        $data = $this->request->getPost(['tournament_id', 'name', 'sort_order']);
-
-        if (! $this->validateData($data, $this->rules())) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Perubahan pot belum valid.')
-                ->with('validation', $this->validator->getErrors());
+        $tournament = $this->tournamentModel->find((int) $pot['tournament_id']);
+        if ($tournament === null) {
+            return $this->potErrorResponse('Tournament pot tidak ditemukan.', $isAjax);
         }
 
-        $this->potModel->update($id, [
-            'name'       => trim((string) $data['name']),
-            'sort_order' => (int) ($data['sort_order'] ?: 0),
-        ]);
+        if (! $this->isTournamentEditable($tournament)) {
+            return $this->potErrorResponse('Tournament sudah finished. Pot tidak bisa diubah.', $isAjax);
+        }
 
-        return redirect()->to(site_url('tournaments/' . $pot['tournament_id'] . '/pots'))->with('success', 'Pot berhasil diperbarui.');
+        $data = $this->request->getPost(['tournament_id', 'name', 'sort_order', 'redirect_to']);
+
+        if (! $this->validateData($data, $this->rules())) {
+            return $this->potErrorResponse('Perubahan pot belum valid.', $isAjax, $this->validator->getErrors());
+        }
+
+        $name = trim((string) ($data['name'] ?? ''));
+        $sortOrder = trim((string) ($data['sort_order'] ?? ''));
+
+        $this->potModel->update($id, [
+            'name'       => $name === '' ? (string) $pot['name'] : $name,
+            'sort_order' => $sortOrder === '' ? (int) $pot['sort_order'] : (int) $sortOrder,
+        ]);
+        $this->potOrderService->movePot((int) $pot['tournament_id'], $id, $sortOrder === '' ? null : (int) $sortOrder);
+
+        $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
+        if ($isAjax) {
+            return $this->response->setJSON([
+                'status'        => 'success',
+                'message'       => 'Pot berhasil diperbarui.',
+                'redirectUrl'   => $redirectTo !== '' ? $redirectTo : site_url('pots/' . $id . '/scores'),
+                'csrfTokenName' => csrf_token(),
+                'csrfHash'      => csrf_hash(),
+            ]);
+        }
+
+        if ($redirectTo !== '') {
+            return redirect()->to($redirectTo)->with('success', 'Pot berhasil diperbarui.');
+        }
+
+        return redirect()->back()->with('success', 'Pot berhasil diperbarui.');
+    }
+
+    public function updateImages(int $id)
+    {
+        $isAjax = $this->request->isAJAX();
+        $pot = $this->potModel->find($id);
+
+        if ($pot === null) {
+            throw PageNotFoundException::forPageNotFound('Pot tidak ditemukan.');
+        }
+
+        $tournament = $this->tournamentModel->find((int) $pot['tournament_id']);
+        if ($tournament === null) {
+            return $this->potErrorResponse('Tournament pot tidak ditemukan.', $isAjax);
+        }
+
+        if (! $this->isTournamentEditable($tournament)) {
+            return $this->potErrorResponse('Tournament sudah finished. Screenshot tidak bisa diubah.', $isAjax);
+        }
+
+        $rules = [
+            'reference_image_1' => 'if_exist|uploaded[reference_image_1]|is_image[reference_image_1]|mime_in[reference_image_1,image/jpg,image/jpeg,image/png,image/webp,image/gif]|ext_in[reference_image_1,jpg,jpeg,png,webp,gif]|max_size[reference_image_1,4096]',
+            'reference_image_2' => 'if_exist|uploaded[reference_image_2]|is_image[reference_image_2]|mime_in[reference_image_2,image/jpg,image/jpeg,image/png,image/webp,image/gif]|ext_in[reference_image_2,jpg,jpeg,png,webp,gif]|max_size[reference_image_2,4096]',
+        ];
+
+        $requestFiles = $this->request->getFiles();
+        $hasUpload = false;
+        foreach (['reference_image_1', 'reference_image_2'] as $field) {
+            if (isset($requestFiles[$field]) && $requestFiles[$field]->isValid() && ! $requestFiles[$field]->hasMoved()) {
+                $hasUpload = true;
+            }
+        }
+
+        if (! $hasUpload) {
+            return $this->potErrorResponse('Pilih minimal satu screenshot untuk diupload.', $isAjax);
+        }
+
+        if (! $this->validate($rules)) {
+            return $this->potErrorResponse('File screenshot belum valid.', $isAjax, $this->validator->getErrors());
+        }
+
+        $uploadPath = FCPATH . 'uploads/pot-references';
+        if (! is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $payload = [];
+
+        foreach (['reference_image_1', 'reference_image_2'] as $field) {
+            $file = $this->request->getFile($field);
+
+            if ($file === null || ! $file->isValid() || $file->hasMoved()) {
+                continue;
+            }
+
+            $newName = 'pot_' . $id . '_' . $field . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $file->getExtension();
+            $file->move($uploadPath, $newName, true);
+            $payload[$field] = 'uploads/pot-references/' . $newName;
+        }
+
+        if ($payload !== []) {
+            $this->potModel->update($id, $payload);
+        }
+
+        if ($isAjax) {
+            return $this->response->setJSON([
+                'status'        => 'success',
+                'message'       => 'Screenshot referensi pot berhasil diperbarui.',
+                'csrfTokenName' => csrf_token(),
+                'csrfHash'      => csrf_hash(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Screenshot referensi pot berhasil diperbarui.');
     }
 
     public function delete(int $id)
     {
+        $isAjax = $this->request->isAJAX();
         $pot = $this->potModel->find($id);
 
         if ($pot === null) {
             throw PageNotFoundException::forPageNotFound('Pot tidak ditemukan.');
         }
 
-        $this->potModel->delete($id);
+        $tournament = $this->tournamentModel->find((int) $pot['tournament_id']);
+        if ($tournament === null) {
+            return $this->potErrorResponse('Tournament pot tidak ditemukan.', $isAjax);
+        }
 
-        return redirect()->to(site_url('tournaments/' . $pot['tournament_id'] . '/pots'))->with('success', 'Pot berhasil dihapus.');
+        if (! $this->isTournamentEditable($tournament)) {
+            return $this->potErrorResponse('Tournament sudah finished. Pot tidak bisa dihapus.', $isAjax);
+        }
+
+        $nextPot = $this->potModel
+            ->where('tournament_id', (int) $pot['tournament_id'])
+            ->where('id !=', $id)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->first();
+
+        $this->potModel->delete($id);
+        $this->potOrderService->normalizeTournament((int) $pot['tournament_id']);
+
+        if ($isAjax) {
+            return $this->response->setJSON([
+                'status'        => 'success',
+                'message'       => 'Pot berhasil dihapus.',
+                'redirectUrl'   => $nextPot !== null ? site_url('pots/' . $nextPot['id'] . '/scores') : site_url('dashboard'),
+                'csrfTokenName' => csrf_token(),
+                'csrfHash'      => csrf_hash(),
+            ]);
+        }
+
+        if ($nextPot !== null) {
+            return redirect()->to(site_url('pots/' . $nextPot['id'] . '/scores'))->with('success', 'Pot berhasil dihapus.');
+        }
+
+        return redirect()->to(site_url('dashboard'))->with('success', 'Pot berhasil dihapus.');
     }
 
     private function rules(): array
@@ -115,12 +294,34 @@ class PotController extends BaseController
             ],
             'name' => [
                 'label' => 'Nama pot',
-                'rules' => 'required|min_length[2]|max_length[150]',
+                'rules' => 'permit_empty|max_length[150]',
             ],
             'sort_order' => [
                 'label' => 'Urutan',
                 'rules' => 'permit_empty|is_natural',
             ],
         ];
+    }
+
+    private function isTournamentEditable(array $tournament): bool
+    {
+        return (string) ($tournament['status'] ?? TournamentModel::STATUS_BELUM_MULAI) !== TournamentModel::STATUS_SELESAI;
+    }
+
+    private function potErrorResponse(string $message, bool $isAjax, array $validation = [])
+    {
+        if ($isAjax) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status'        => 'error',
+                'message'       => $message,
+                'validation'    => $validation,
+                'csrfTokenName' => csrf_token(),
+                'csrfHash'      => csrf_hash(),
+            ]);
+        }
+
+        $redirect = redirect()->back()->with('error', $message);
+
+        return $validation === [] ? $redirect : $redirect->with('validation', $validation);
     }
 }

@@ -1,33 +1,58 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
+<?php
+$status = $tournament['status'] ?? 'belum_mulai';
+$statusLabel = $statusOptions[$status] ?? ucwords(str_replace('_', ' ', $status));
+$badgeClass = match ($status) {
+    'start' => 'text-bg-success',
+    'selesai' => 'text-bg-secondary',
+    default => 'text-bg-warning',
+};
+?>
 <div class="page-header">
     <div>
-        <h1 class="h3 mb-1">Pot Tournament</h1>
-        <p class="text-muted mb-0"><?= esc($tournament['name']) ?></p>
+        <h1 class="h3 mb-1"><?= esc($tournament['name']) ?></h1>
+        <p class="text-muted mb-0">Mode kelola cepat untuk pot, team, dan kalkulator score.</p>
     </div>
-    <a href="<?= site_url('tournaments') ?>" class="btn btn-outline-secondary">Kembali ke Tournament</a>
+    <div class="d-flex gap-2">
+        <span class="badge <?= esc($badgeClass) ?> d-inline-flex align-items-center px-3"><?= esc($statusLabel) ?></span>
+        <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary">Kembali ke Dashboard</a>
+        <a href="<?= site_url('tournaments/edit/' . $tournament['id']) ?>" class="btn btn-outline-dark">Edit Event</a>
+    </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="card stat-card">
-            <div class="card-header bg-white">
-                <h2 class="h5 mb-0">Tambah Pot</h2>
+<div class="card stat-card mb-4">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+            <div>
+                <h2 class="h5 mb-1">Tambah Pot Baru</h2>
+                <p class="text-muted mb-0">Buat pot, lalu langsung kelola team dan score di bawahnya.</p>
             </div>
-            <div class="card-body">
-                <?= view('pots/form', [
-                    'action'      => site_url('pots/store'),
-                    'pot'         => null,
-                    'tournament'  => $tournament,
-                    'submitLabel' => 'Tambah Pot',
-                ]) ?>
-            </div>
+            <div class="small text-muted">Total pot: <?= esc((string) count($pots)) ?></div>
         </div>
+        <?= view('pots/form', [
+            'action'      => site_url('pots/store'),
+            'pot'         => null,
+            'tournament'  => $tournament,
+            'submitLabel' => 'Tambah Pot',
+        ]) ?>
     </div>
+</div>
 
-    <div class="col-lg-8">
-        <?= $this->include('pots/_table') ?>
-    </div>
+<div class="mt-4">
+    <?php if ($pots === []): ?>
+        <div class="card stat-card">
+            <div class="card-body text-center text-muted py-5">Tambahkan pot pertama agar kalkulator event langsung bisa dipakai.</div>
+        </div>
+    <?php else: ?>
+        <?php foreach ($pots as $pot): ?>
+            <?= view('pots/_manager', [
+                'pot'          => $pot,
+                'tournament'   => $tournament,
+                'placementMap' => $placementMap,
+            ]) ?>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 <?= $this->endSection() ?>

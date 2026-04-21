@@ -1,22 +1,24 @@
-<div class="card stat-card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+<div class="card import-card">
+    <div class="card-header import-card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <h2 class="h5 mb-0">Preview Import</h2>
+
         <?php if ($previewRows !== [] && $payload): ?>
-            <form action="<?= site_url('imports/registrations') ?>" method="post">
+            <form action="<?= site_url('imports/registrations') ?>" method="post" class="m-0">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="import">
                 <input type="hidden" name="payload" value="<?= esc($payload) ?>">
-                <button type="submit" class="btn btn-success btn-sm">Simpan ke Database</button>
+                <button type="submit" class="btn btn-success btn-sm app-btn">Simpan ke Database</button>
             </form>
         <?php endif; ?>
     </div>
+
     <div class="card-body p-0">
         <?php if ($previewRows === []): ?>
-            <div class="p-4 text-center text-muted">Belum ada data preview. Upload file CSV untuk melihat hasil parsing.</div>
+            <div class="import-preview-empty">Belum ada data preview. Upload file CSV untuk melihat hasil parsing.</div>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="table table-striped align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table align-middle mb-0 import-table">
+                    <thead>
                         <tr>
                             <th>Team</th>
                             <th>Leader</th>
@@ -38,7 +40,12 @@
                                         <span class="text-muted">Tanpa player</span>
                                     <?php else: ?>
                                         <?php foreach ($row['players'] as $player): ?>
-                                            <div><?= esc($player['player_name']) ?><?php if ($player['player_role'] !== ''): ?> <span class="text-muted small">(<?= esc($player['player_role']) ?>)</span><?php endif; ?></div>
+                                            <div>
+                                                <?= esc($player['player_name']) ?>
+                                                <?php if ($player['player_role'] !== ''): ?>
+                                                    <span class="text-muted small">(<?= esc($player['player_role']) ?>)</span>
+                                                <?php endif; ?>
+                                            </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </td>

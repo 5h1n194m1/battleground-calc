@@ -8,6 +8,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Nama</th>
+                            <th>Status</th>
                             <th class="text-center">Pot</th>
                             <th class="text-center">Team</th>
                             <th>Dibuat</th>
@@ -16,14 +17,26 @@
                     </thead>
                     <tbody>
                         <?php foreach ($tournaments as $tournament): ?>
+                            <?php
+                            $status = $tournament['status'] ?? 'belum_mulai';
+                            $statusLabel = $statusOptions[$status] ?? ucwords(str_replace('_', ' ', $status));
+                            $badgeClass = match ($status) {
+                                'start' => 'text-bg-success',
+                                'selesai' => 'text-bg-secondary',
+                                default => 'text-bg-warning',
+                            };
+                            ?>
                             <tr>
                                 <td class="fw-semibold"><?= esc($tournament['name']) ?></td>
+                                <td><span class="badge <?= esc($badgeClass) ?>"><?= esc($statusLabel) ?></span></td>
                                 <td class="text-center"><?= esc((string) $tournament['pot_count']) ?></td>
                                 <td class="text-center"><?= esc((string) $tournament['team_count']) ?></td>
                                 <td><?= esc(date('d M Y H:i', strtotime((string) $tournament['created_at']))) ?></td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
-                                        <a href="<?= site_url('tournaments/' . $tournament['id'] . '/pots') ?>" class="btn btn-sm btn-outline-primary">Pot</a>
+                                        <a href="<?= site_url('tournaments/' . $tournament['id'] . '/pots') ?>" class="btn btn-sm btn-outline-primary">
+                                            <?= $status === 'selesai' ? 'Lihat' : 'Kelola' ?>
+                                        </a>
                                         <a href="<?= site_url('tournaments/edit/' . $tournament['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                         <form action="<?= site_url('tournaments/delete/' . $tournament['id']) ?>" method="post" onsubmit="return confirm('Hapus tournament ini beserta seluruh data turunannya?');">
                                             <?= csrf_field() ?>

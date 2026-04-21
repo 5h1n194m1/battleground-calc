@@ -1,0 +1,2319 @@
+<!-- DEBUG-VIEW START 6 APPPATH\Views\scores\index.php -->
+<!-- DEBUG-VIEW START 5 APPPATH\Views\layouts\main.php -->
+<!doctype html>
+<html lang="id">
+<head>
+<script  id="debugbar_loader" data-time="1776664968.574541" src="http://localhost:8000/index.php?debugbar"></script><script  id="debugbar_dynamic_script"></script><style  id="debugbar_dynamic_style"></style><script class="kint-rich-script">"use strict";(()=>{function m(n){if(!(n instanceof Element))throw new Error("Invalid argument to dedupeElement()");let t=n.ownerDocument,e=E(n);for(let s of t.querySelectorAll(e))n!==s&&s.parentNode.removeChild(s)}function d(n){return n instanceof Element?n.ownerDocument.contains(n):!1}function E(n){if(!(n instanceof Element))throw new Error("Invalid argument to buildClassSelector()");return[n.nodeName,...n.classList].join(".")}function f(n){if(!(n instanceof Element))throw new Error("Invalid argument to selectText()");let t=n.ownerDocument,e=t.getSelection(),s=t.createRange();s.selectNodeContents(n),e.removeAllRanges(),e.addRange(s)}function I(n,t){let e;return function(...s){clearTimeout(e),e=setTimeout(function(){n(...s)},t)}}function x(n){if(!(n instanceof Element))throw new Error("Invalid argument to offsetTop()");return n.offsetTop+(n.offsetParent?x(n.offsetParent):0)}var u=class n{static#e=new Set;static toggleSearchBox(t,e){let s=t.querySelector(".kint-search"),i=t.parentNode;if(s)if(s.classList.toggle("kint-show",e)){if(s.focus(),s.select(),!n.#e.has(s)){let r=i.querySelectorAll("dl").length,o=200;r>1e4&&(o=700),s.addEventListener("keyup",I(n.#t.bind(null,s),o)),n.#e.add(s)}n.#t(s)}else i.classList.remove("kint-search-root")}static#t(t){let e=t.closest(".kint-parent")?.parentNode;if(e)if(t.classList.contains("kint-show")&&t.value.length){let s=e.dataset.lastSearch;if(e.classList.add("kint-search-root"),s!==t.value){e.dataset.lastSearch=t.value,e.classList.remove("kint-search-match");for(let i of e.querySelectorAll(".kint-search-match"))i.classList.remove("kint-search-match");n.#s(e,t.value.toUpperCase())}}else e.classList.remove("kint-search-root")}static#s(t,e){let s=t.cloneNode(!0);for(let c of s.querySelectorAll(".access-path"))c.remove();if(!s.textContent.toUpperCase().includes(e))return;t.classList.add("kint-search-match");let i=t.firstElementChild;for(;i&&i.tagName!=="DT";)i=i.nextElementSibling;if(!i)return;let r=a.getChildContainer(i);if(!r)return;let o,l;for(let c of r.children)c.tagName==="DL"?n.#s(c,e):c.tagName==="UL"&&(c.classList.contains("kint-tabs")?o=c.children:c.classList.contains("kint-tab-contents")&&(l=c.children));if(!(!o||o.length!==l?.length))for(let c=o.length;c--;){let k=!1,F=!1;o[c].textContent.toUpperCase().includes(e)&&(k=!0);let O=l[c].cloneNode(!0);for(let v of O.querySelectorAll(".access-path"))v.remove();if(O.textContent.toUpperCase().includes(e)&&(k=!0,F=!0),k&&o[c].classList.add("kint-search-match"),F)for(let v of l[c].children)v.tagName==="DL"&&n.#s(v,e)}}};var g=class{static sort(t,e){let s=t.dataset.kintTableSort,i=parseInt(s)===e?-1:1,r=t.tBodies[0];[...r.rows].sort(function(o,l){o=o.cells[e].textContent.trim().toLocaleLowerCase(),l=l.cells[e].textContent.trim().toLocaleLowerCase();let c=0;return!isNaN(o)&&!isNaN(l)?(o=parseFloat(o),l=parseFloat(l),c=o-l):isNaN(o)&&!isNaN(l)?c=1:isNaN(l)&&!isNaN(o)?c=-1:c=(""+o).localeCompare(""+l),c*i}).forEach(o=>r.appendChild(o)),i<0?t.dataset.kintTableSort=null:t.dataset.kintTableSort=e}};var a=class n{#e;#t;#s;constructor(t){if(!(t instanceof h))throw new Error("Invalid argument to Rich.constructor()");this.#e=t,this.#e.runOnInit(this.#i.bind(this));let e=new q(this,t);new b(this,t.window,e)}#i(){let t=this.#e.window.document;if(d(this.#t)||(this.#t=t.querySelector("style.kint-rich-style")),this.#t&&m(this.#t),t.querySelector(".kint-rich.kint-file")){this.setupFolder(t);let e=this.#s.querySelector("dd.kint-foldout"),s=Array.from(t.querySelectorAll(".kint-rich.kint-file"));for(let i of s)i.parentNode!==e&&e.appendChild(i);this.#s.classList.add("kint-show")}}addToFolder(t){let e=t.closest(".kint-rich");if(!e)throw new Error("Bad addToFolder");let s=this.#e.window.document;if(this.setupFolder(s),this.folder.contains(t))throw new Error("Bad addToFolder");let i=this.#s.querySelector("dd.kint-foldout"),r=t.closest(".kint-parent, .kint-rich"),o=Array.from(e.querySelectorAll(".kint-folder-trigger"));if(e===r||e.querySelectorAll(".kint-rich > dl").length===1){for(let l of o)l.remove();e.classList.add("kint-file"),i.insertBefore(e,i.firstChild)}else{let l=s.createElement("div");l.classList.add("kint-rich"),l.classList.add("kint-file"),l.appendChild(r.closest(".kint-rich > dl"));let c=e.lastElementChild;c.matches(".kint-rich > footer")&&l.appendChild(c.cloneNode(!0));for(let k of o)k.remove();i.insertBefore(l,i.firstChild)}n.toggle(this.#s.querySelector(".kint-parent"),!0)}setupFolder(t){if(this.#s)d(this.#s)||(this.#s=t.querySelector(".kint-rich.kint-folder"));else{let e=t.createElement("template");e.innerHTML='<div class="kint-rich kint-folder"><dl><dt class="kint-parent"><nav></nav>Kint</dt><dd class="kint-foldout"></dd></dl></div>',this.#s=e.content.firstChild,t.body.appendChild(this.#s)}}get folder(){return d(this.#s)||(this.#s=this.#e.window.document.querySelector(".kint-rich.kint-folder")),this.#s&&m(this.#s),this.#s}isFolderOpen(){let t=this.#s?.querySelector("dd.kint-foldout");if(t)return t.previousSibling.classList.contains("kint-show")}static getChildContainer(t){let e=t.nextElementSibling;for(;e&&!e.matches("dd");)e=e.nextElementSibling;return e}static toggle(t,e){let s=n.getChildContainer(t);s&&(e=t.classList.toggle("kint-show",e),n.#n(s,e))}static switchTab(t){t.parentNode.getElementsByClassName("kint-active-tab")[0].classList.remove("kint-active-tab"),t.classList.add("kint-active-tab");let e=t,s=0;for(;e=e.previousElementSibling;)s++;let i=t.parentNode.nextSibling.children;for(let r=i.length;r--;)r===s?(i[r].classList.add("kint-show"),n.#n(i[r],!0)):i[r].classList.remove("kint-show")}static toggleChildren(t,e){let s=n.getChildContainer(t);if(!s)return;e===void 0&&(e=t.classList.contains("kint-show"));let i=Array.from(s.getElementsByClassName("kint-parent"));for(let r of i)r.classList.toggle("kint-show",e)}static toggleAccessPath(t,e){let s=t.querySelector(".access-path");s?.classList.toggle("kint-show",e)&&f(s)}static#n(t,e){if(t.children.length===2&&t.lastElementChild.matches("ul.kint-tab-contents"))for(let s of t.lastElementChild.children)s.matches("li.kint-show")&&(t=s);if(t.children.length===1&&t.firstElementChild.matches("dl")){let s=t.firstElementChild.firstElementChild;s?.classList?.contains("kint-parent")&&n.toggle(s,e)}}},b=class{#e;#t;#s;#i=null;#n=null;#o=0;constructor(t,e,s){this.#e=t,this.#t=s,this.#s=e,this.#s.addEventListener("click",this.#a.bind(this),!0)}#r(){clearTimeout(this.#i),this.#i=setTimeout(this.#l.bind(this),250)}#l(){clearTimeout(this.#i),this.#i=null,this.#n=null,this.#o=0}#c(){let t=this.#n;if(!t.matches(".kint-parent > nav"))return;let e=t.parentNode;if(this.#o===1)a.toggleChildren(e),this.#t.onTreeChanged(),this.#r(),this.#o=2;else if(this.#o===2){this.#l();let s=e.classList.contains("kint-show"),i=this.#e.folder?.querySelector(".kint-parent"),r=Array.from(this.#s.document.getElementsByClassName("kint-parent"));for(let o of r)o!==i&&o.classList.toggle("kint-show",s);this.#t.onTreeChanged(),this.#t.scrollToFocus()}}#a(t){if(this.#o){this.#c();return}let e=t.target;if(!e.closest(".kint-rich"))return;if(e.tagName==="DFN"&&f(e),e.tagName==="TH"){t.ctrlKey||g.sort(e.closest("table"),e.cellIndex);return}if(e.tagName==="LI"&&e.parentNode.className==="kint-tabs"){if(e.className!=="kint-active-tab"){let i=e.closest("dl")?.querySelector(".kint-parent > nav")??e;a.switchTab(e),this.#t.onTreeChanged(),this.#t.setCursor(i)}return}let s=e.closest("dt");if(e.tagName==="NAV")e.parentNode.tagName==="FOOTER"?(this.#t.setCursor(e),e.parentNode.classList.toggle("kint-show")):s?.classList.contains("kint-parent")&&(a.toggle(s),this.#t.onTreeChanged(),this.#t.setCursor(e),this.#r(),this.#o=1,this.#n=e);else if(e.classList.contains("kint-access-path-trigger"))s&&a.toggleAccessPath(s);else if(e.classList.contains("kint-search-trigger"))s?.matches(".kint-rich > dl > dt.kint-parent")&&u.toggleSearchBox(s);else if(e.classList.contains("kint-folder-trigger")){if(s?.matches(".kint-rich > dl > dt.kint-parent"))this.#e.addToFolder(e),this.#t.onTreeChanged(),this.#t.setCursor(s.querySelector("nav")),this.#t.scrollToFocus();else if(e.parentNode.tagName==="FOOTER"){let i=e.closest(".kint-rich").querySelector(".kint-parent > nav, .kint-rich > footer > nav");this.#e.addToFolder(e),this.#t.onTreeChanged(),this.#t.setCursor(i),this.#t.scrollToFocus()}}else e.classList.contains("kint-search")||(e.tagName==="PRE"&&t.detail===3?f(e):e.closest(".kint-source")&&t.detail===3?f(e.closest(".kint-source")):e.classList.contains("access-path")?f(e):e.tagName!=="A"&&s?.classList.contains("kint-parent")&&(a.toggle(s),this.#t.onTreeChanged(),this.#t.setCursor(s.querySelector("nav"))))}},j=65,G=68,A=70,S=72,K=74,D=75,p=76,V=83,P=9,T=13,B=27,L=32,N=37,R=38,C=39,H=40,M=".kint-rich .kint-parent > nav, .kint-rich > footer > nav, .kint-rich .kint-tabs > li:not(.kint-active-tab)",q=class{#e=[];#t=0;#s=!1;#i;#n;constructor(t,e){this.#i=t,this.#n=e.window,this.#n.addEventListener("keydown",this.#c.bind(this),!0),e.runOnInit(this.onTreeChanged.bind(this))}scrollToFocus(){let t=this.#e[this.#t];if(!t)return;let e=this.#i.folder;if(t===e?.querySelector(".kint-parent > nav"))return;let s=x(t);if(this.#i.isFolderOpen()){let i=e.querySelector("dd.kint-foldout");i.scrollTo(0,s-i.clientHeight/2)}else this.#n.scrollTo(0,s-this.#n.innerHeight/2)}onTreeChanged(){let t=this.#e[this.#t];this.#e=[];let e=this.#i.folder,s=e?.querySelector(".kint-parent > nav"),i=this.#n.document;this.#i.isFolderOpen()&&(i=e,this.#e.push(s));let r=Array.from(i.querySelectorAll(M));for(let o of r)o.offsetParent!==null&&o!==s&&this.#e.push(o);if(s&&!this.#i.isFolderOpen()&&this.#e.push(s),this.#e.length===0){this.#s=!1,this.#r();return}t&&this.#e.indexOf(t)!==-1?this.#t=this.#e.indexOf(t):this.#r()}setCursor(t){if(this.#i.isFolderOpen()&&!this.#i.folder.contains(t)||!t.matches(M))return!1;let e=this.#e.indexOf(t);if(e===-1&&(this.onTreeChanged(),e=this.#e.indexOf(t)),e!==-1){if(e!==this.#t)return this.#t=e,this.#r(),!0;this.#e[e]?.classList.remove("kint-weak-focus")}else console.error("setCursor failed to find target in list",t),console.info("Please report this as a bug in Kint at https://github.com/kint-php/kint");return!1}#o(t){if(this.#e.length===0)return this.#t=0,null;for(this.#t+=t;this.#t<0;)this.#t+=this.#e.length;for(;this.#t>=this.#e.length;)this.#t-=this.#e.length;return this.#r(),this.#t}#r(){let t=this.#n.document.querySelector(".kint-focused");t&&(t.classList.remove("kint-focused"),t.classList.remove("kint-weak-focus")),this.#s&&this.#e[this.#t]?.classList.add("kint-focused")}#l(t){let e=t.closest(".kint-rich .kint-parent ~ dd")?.parentNode.querySelector(".kint-parent > nav");e&&(this.setCursor(e),this.scrollToFocus())}#c(t){if(t.keyCode===B&&t.target.matches(".kint-search")){t.target.blur(),this.#s&&this.#r();return}if(t.target!==this.#n.document.body||t.altKey||t.ctrlKey)return;if(t.keyCode===G){if(this.#s)this.#s=!1;else{if(this.#s=!0,this.onTreeChanged(),this.#e.length===0){this.#s=!1;return}this.scrollToFocus()}this.#r(),t.preventDefault();return}else if(t.keyCode===B){this.#s&&(this.#s=!1,this.#r(),t.preventDefault());return}else if(!this.#s)return;t.preventDefault(),d(this.#e[this.#t])||this.onTreeChanged();let e=this.#e[this.#t];if([P,R,D,H,K].includes(t.keyCode)){t.keyCode===P?this.#o(t.shiftKey?-1:1):t.keyCode===R||t.keyCode===D?this.#o(-1):(t.keyCode===H||t.keyCode===K)&&this.#o(1),this.scrollToFocus();return}if(e.tagName==="LI"&&[L,T,C,p,N,S].includes(t.keyCode)){t.keyCode===L||t.keyCode===T?(a.switchTab(e),this.onTreeChanged()):t.keyCode===C||t.keyCode===p?this.#o(1):(t.keyCode===N||t.keyCode===S)&&this.#o(-1),this.scrollToFocus();return}if(e.parentNode.tagName==="FOOTER"&&e.closest(".kint-rich")){if(t.keyCode===L||t.keyCode===T)e.parentNode.classList.toggle("kint-show");else if(t.keyCode===N||t.keyCode===S)if(e.parentNode.classList.contains("kint-show"))e.parentNode.classList.remove("kint-show");else{this.#l(e.closest(".kint-rich"));return}else if(t.keyCode===C||t.keyCode===p)e.parentNode.classList.add("kint-show");else if(t.keyCode===A&&!this.#i.isFolderOpen()&&e.matches(".kint-rich > footer > nav")){let i=e.closest(".kint-rich").querySelector(".kint-parent > nav, .kint-rich > footer > nav");this.#i.addToFolder(e),this.onTreeChanged(),this.setCursor(i),this.scrollToFocus()}return}let s=e.closest(".kint-parent");if(s){if(t.keyCode===j){a.toggleAccessPath(s);return}if(t.keyCode===A){!this.#i.isFolderOpen()&&s.matches(".kint-rich:not(.kint-folder) > dl > .kint-parent")&&(this.#i.addToFolder(e),this.onTreeChanged(),this.setCursor(e),this.scrollToFocus());return}if(t.keyCode===V){let i=s.closest(".kint-rich > dl")?.querySelector(".kint-search")?.closest(".kint-parent");if(i){e.classList.add("kint-weak-focus"),u.toggleSearchBox(i,!0);return}}if(t.keyCode===L||t.keyCode===T){a.toggle(s),this.onTreeChanged();return}if([C,p,N,S].includes(t.keyCode)){let i=s.classList.contains("kint-show");if(t.keyCode===C||t.keyCode===p){i&&a.toggleChildren(s,!0),a.toggle(s,!0),this.onTreeChanged();return}else if(i){a.toggleChildren(s,!1),a.toggle(s,!1),this.onTreeChanged();return}else{this.#l(s);return}}}}};var y=class{#e;#t;constructor(t){if(!(t instanceof h))throw new Error("Invalid argument to Plain.constructor()");this.#e=t.window,t.runOnInit(this.#s.bind(this))}#s(){d(this.#t)||(this.#t=this.#e.document.querySelector("style.kint-plain-style")),this.#t&&m(this.#t)}};var w=class{#e;constructor(t){if(!(t instanceof h))throw new Error("Invalid argument to Microtime.constructor()");this.#e=t.window,t.runOnInit(this.#t.bind(this))}#t(){let t={},e=this.#e.document.querySelectorAll("[data-kint-microtime-group]");for(let s of e){let i=s.querySelector(".kint-microtime-lap");if(!i)continue;let r=s.dataset.kintMicrotimeGroup,o=parseFloat(i.textContent),l=parseFloat(s.querySelector(".kint-microtime-avg").textContent);t[r]??={min:o,max:o,avg:l},t[r].min>o&&(t[r].min=o),t[r].max<o&&(t[r].max=o),t[r].avg=l}for(let s of e){let i=s.querySelector(".kint-microtime-lap");if(!i)continue;let r=parseFloat(i.textContent),o=t[s.dataset.kintMicrotimeGroup];if(s.querySelector(".kint-microtime-avg").textContent=o.avg,!(r===o.min&&r===o.max))if(s.classList.add("kint-microtime-js"),r>o.avg){let l=(r-o.avg)/(o.max-o.avg);i.style.background="hsl("+(40-40*l)+", 100%, 65%)"}else{let l=0;o.avg!==o.min&&(l=(o.avg-r)/(o.avg-o.min)),i.style.background="hsl("+(40+80*l)+", 100%, 65%)"}}}};var U=Symbol(),h=class n{static#e=null;#t;#s=[];#i=new Set;static init(t){return n.#e??=new n(t,U),n.#e.#n(),n.#e.runOnLoad(n.#r),n.#e}get window(){return this.#t}constructor(t,e){if(U!==e)throw new Error("Kint constructor is private. Use Kint.init()");if(!(t instanceof Window))throw new Error("Invalid argument to Kint.init()");this.#t=t,this.runOnInit(this.#o.bind(this)),new y(this),new a(this),new w(this)}runOnLoad(t){if(this.#t.document.readyState==="complete")try{t()}catch{}else this.#t.addEventListener("load",t)}runOnInit(t){this.#s.push(t)}#n(){this.#t.document.currentScript&&(this.#i.add(E(window.document.currentScript)),window.document.currentScript.remove())}#o(){for(let t of this.#i.keys())for(let e of this.#t.document.querySelectorAll(t))e.remove()}static#r(){for(let t of n.#e.#s)t()}};window.Kint||(window.Kint=h);window.Kint.init(window);})();
+</script><style class="kint-rich-style">.kint-rich{--spacing: 4px;--nav-size: 15px;--backdrop-color: rgba(255, 255, 255, 0.9);--main-background: #e0eaef;--secondary-background: #c1d4df;--text-color: #1d1e1e;--variable-name-color: #1d1e1e;--variable-type-color: #0092db;--variable-type-color-hover: #5cb730;--border-color: #b6cedb;--border-color-hover: #0092db;--border: 1px solid var(--border-color);--foldout-max-size: calc(100vh - 100px);--foldout-zindex: 999999;--caret-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 150'><g stroke-width='2' fill='%23FFF'><path d='M1 1h28v28H1zm5 14h18m-9 9V6M1 61h28v28H1zm5 14h18' stroke='%23379'/><path d='M1 31h28v28H1zm5 14h18m-9 9V36M1 91h28v28H1zm5 14h18' stroke='%235A3'/><path d='M1 121h28v28H1zm5 5l18 18m-18 0l18-18' stroke='%23CCC'/></g></svg>");--ap-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><g stroke='%23000' fill='transparent'><path d='M2 8h3m3 3v3M8 2v3m3 3h3M3 8' stroke-width='2' stroke-linecap='round'/><circle stroke-width='1.5' r='4.5' cx='8' cy='8'/></g></svg>");--folder-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2 2h4l2 2h6v9H2V2h2' stroke-width='2' stroke='%23000' fill='transparent' stroke-linejoin='round'/></svg>");--search-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><g stroke='%23000' fill='transparent'><path d='M2 14l3-3' stroke-linecap='round' stroke-width='3'/><circle stroke-width='2' r='5' cx='9' cy='7'/></g></svg>");font-size:13px;overflow-x:auto;white-space:nowrap;background:var(--backdrop-color);direction:ltr;contain:content}.kint-rich.kint-folder{position:fixed;bottom:0;left:0;right:0;z-index:var(--foldout-zindex);width:100%;margin:0;display:block}.kint-rich.kint-folder dd.kint-foldout{max-height:var(--foldout-max-size);padding-right:calc(var(--spacing)*2);overflow-y:scroll;display:none}.kint-rich.kint-folder dd.kint-foldout.kint-show{display:block}.kint-rich::selection{background:var(--border-color-hover);color:var(--text-color)}.kint-rich .kint-focused{box-shadow:0 0 3px 3px var(--variable-type-color-hover)}.kint-rich .kint-focused.kint-weak-focus{box-shadow:0 0 3px 1px color-mix(in srgb, var(--variable-type-color-hover) 50%, transparent)}.kint-rich,.kint-rich::before,.kint-rich::after,.kint-rich *,.kint-rich *::before,.kint-rich *::after{box-sizing:border-box;border-radius:0;color:var(--text-color);float:none !important;font-family:Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,serif;line-height:15px;margin:0;padding:0;text-align:left}.kint-rich{margin:calc(var(--spacing)*2) 0}.kint-rich dt,.kint-rich dl{width:auto}.kint-rich dt,.kint-rich div.access-path{background:var(--main-background);border:var(--border);color:var(--text-color);display:block;font-weight:bold;list-style:none outside none;overflow:auto;padding:var(--spacing)}.kint-rich dt:hover,.kint-rich div.access-path:hover{border-color:var(--border-color-hover)}.kint-rich>dl dl{padding:0 0 0 calc(var(--spacing)*3)}.kint-rich dt.kint-parent>nav,.kint-rich>footer>nav{background:var(--caret-image) no-repeat scroll 0 0/var(--nav-size) 75px rgba(0,0,0,0);cursor:pointer;display:inline-block;height:var(--nav-size);width:var(--nav-size);margin-right:3px;vertical-align:middle}.kint-rich dt.kint-parent:hover>nav,.kint-rich>footer>nav:hover{background-position:0 25%}.kint-rich dt.kint-parent.kint-show>nav,.kint-rich>footer.kint-show>nav{background-position:0 50%}.kint-rich dt.kint-parent.kint-show:hover>nav,.kint-rich>footer.kint-show>nav:hover{background-position:0 75%}.kint-rich dt.kint-parent.kint-locked>nav{background-position:0 100%}.kint-rich dt.kint-parent+dd{display:none;border-left:1px dashed var(--border-color);contain:strict}.kint-rich dt.kint-parent.kint-show+dd{display:block;contain:content}.kint-rich var,.kint-rich var a{color:var(--variable-type-color);font-style:normal}.kint-rich dt:hover var,.kint-rich dt:hover var a{color:var(--variable-type-color-hover)}.kint-rich dfn{font-style:normal;font-family:monospace;color:var(--variable-name-color)}.kint-rich pre{color:var(--text-color);margin:0 0 0 calc(var(--spacing)*3);padding:5px;overflow-y:hidden;border-top:0;border:var(--border);background:var(--main-background);display:block;word-break:normal}.kint-rich .kint-access-path-trigger,.kint-rich .kint-folder-trigger,.kint-rich .kint-search-trigger{background:color-mix(in srgb, var(--text-color) 80%, transparent);border-radius:3px;padding:2px;height:var(--nav-size);width:var(--nav-size);font-size:var(--nav-size);margin-left:5px;font-weight:bold;text-align:center;line-height:1;float:right !important;cursor:pointer;position:relative;overflow:hidden}.kint-rich .kint-access-path-trigger::before,.kint-rich .kint-folder-trigger::before,.kint-rich .kint-search-trigger::before{display:block;content:"";width:100%;height:100%;background:var(--main-background);mask:center/contain no-repeat alpha}.kint-rich .kint-access-path-trigger:hover,.kint-rich .kint-folder-trigger:hover,.kint-rich .kint-search-trigger:hover{background:var(--main-background)}.kint-rich .kint-access-path-trigger:hover::before,.kint-rich .kint-folder-trigger:hover::before,.kint-rich .kint-search-trigger:hover::before{background:var(--text-color)}.kint-rich .kint-access-path-trigger::before{mask-image:var(--ap-image)}.kint-rich .kint-folder-trigger::before{mask-image:var(--folder-image)}.kint-rich .kint-search-trigger::before{mask-image:var(--search-image)}.kint-rich input.kint-search{display:none;border:var(--border);border-top-width:0;border-bottom-width:0;padding:var(--spacing);float:right !important;margin:calc(var(--spacing)*-1) 0;color:var(--variable-name-color);background:var(--secondary-background);height:calc(var(--nav-size) + var(--spacing)*2);width:calc(var(--nav-size)*10);position:relative;z-index:100}.kint-rich input.kint-search.kint-show{display:block}.kint-rich .kint-search-root ul.kint-tabs>li:not(.kint-search-match){background:var(--secondary-background);filter:saturate(0);opacity:.5}.kint-rich .kint-search-root dl:not(.kint-search-match){opacity:.5}.kint-rich .kint-search-root dl:not(.kint-search-match)>dt{background:var(--main-background);filter:saturate(0)}.kint-rich .kint-search-root dl:not(.kint-search-match) dl,.kint-rich .kint-search-root dl:not(.kint-search-match) ul.kint-tabs>li:not(.kint-search-match){opacity:1}.kint-rich div.access-path{background:var(--secondary-background);display:none;margin-top:5px;padding:4px;white-space:pre}.kint-rich div.access-path.kint-show{display:block}.kint-rich footer{padding:0 3px 3px;font-size:9px;background:rgba(0,0,0,0)}.kint-rich footer>.kint-folder-trigger{background:rgba(0,0,0,0)}.kint-rich footer>.kint-folder-trigger::before{background:var(--text-color)}.kint-rich footer nav{height:10px;width:10px;background-size:10px 50px}.kint-rich footer>ol{display:none;margin-left:32px}.kint-rich footer.kint-show>ol{display:block}.kint-rich a{color:var(--text-color);text-shadow:none;text-decoration:underline}.kint-rich a:hover{color:var(--variable-name-color);border-bottom:1px dotted var(--variable-name-color)}.kint-rich ul{list-style:none;padding-left:calc(var(--spacing)*3)}.kint-rich ul:not(.kint-tabs) li{border-left:1px dashed var(--border-color)}.kint-rich ul:not(.kint-tabs) li>dl{border-left:none}.kint-rich ul.kint-tabs{margin:0 0 0 calc(var(--spacing)*3);padding-left:0;background:var(--main-background);border:var(--border);border-top:0}.kint-rich ul.kint-tabs>li{background:var(--secondary-background);border:var(--border);cursor:pointer;display:inline-block;height:calc(var(--spacing)*6);margin:calc(var(--spacing)/2);padding:0 calc(2px + var(--spacing)*2.5);vertical-align:top}.kint-rich ul.kint-tabs>li:hover,.kint-rich ul.kint-tabs>li.kint-active-tab:hover{border-color:var(--border-color-hover);color:var(--variable-type-color-hover)}.kint-rich ul.kint-tabs>li.kint-active-tab{background:var(--main-background);border-top:0;margin-top:-1px;height:27px;line-height:24px}.kint-rich ul.kint-tabs>li:not(.kint-active-tab){line-height:calc(var(--spacing)*5)}.kint-rich ul.kint-tabs li+li{margin-left:0}.kint-rich ul.kint-tab-contents>li{display:none;contain:strict}.kint-rich ul.kint-tab-contents>li.kint-show{display:block;contain:content}.kint-rich dt:hover+dd>ul>li.kint-active-tab{border-color:var(--border-color-hover);color:var(--variable-type-color-hover)}.kint-rich dt>.kint-color-preview{width:var(--nav-size);height:var(--nav-size);display:inline-block;vertical-align:middle;margin-left:10px;border:var(--border);background-color:#ccc;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><path fill="%23FFF" d="M0 0h1v2h1V1H0z"/></svg>');background-size:min(20px,100%)}.kint-rich dt>.kint-color-preview:hover{border-color:var(--border-color-hover)}.kint-rich dt>.kint-color-preview>div{width:100%;height:100%}.kint-rich table{border-collapse:collapse;empty-cells:show;border-spacing:0}.kint-rich table *{font-size:12px}.kint-rich table dt{background:none;padding:calc(var(--spacing)/2)}.kint-rich table dt .kint-parent{min-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kint-rich table td,.kint-rich table th{border:var(--border);padding:calc(var(--spacing)/2);vertical-align:center}.kint-rich table th{cursor:alias}.kint-rich table td:first-child,.kint-rich table th{font-weight:bold;background:var(--secondary-background);color:var(--variable-name-color)}.kint-rich table td{background:var(--main-background);white-space:pre}.kint-rich table td>dl{padding:0}.kint-rich table pre{border-top:0;border-right:0}.kint-rich table thead th:first-child{background:none;border:0}.kint-rich table tr:hover>td{box-shadow:0 0 1px 0 var(--border-color-hover) inset}.kint-rich table tr:hover var{color:var(--variable-type-color-hover)}.kint-rich table ul.kint-tabs li.kint-active-tab{height:20px;line-height:17px}.kint-rich pre.kint-source{margin-left:-1px}.kint-rich pre.kint-source[data-kint-filename]:before{display:block;content:attr(data-kint-filename);margin-bottom:var(--spacing);padding-bottom:var(--spacing);border-bottom:1px solid var(--secondary-background)}.kint-rich pre.kint-source>div:before{display:inline-block;content:counter(kint-l);counter-increment:kint-l;border-right:1px solid var(--border-color-hover);padding-right:calc(var(--spacing)*2);margin-right:calc(var(--spacing)*2)}.kint-rich pre.kint-source>div.kint-highlight{background:var(--secondary-background)}.kint-rich .kint-microtime-js .kint-microtime-lap{text-shadow:-1px 0 var(--border-color-hover),0 1px var(--border-color-hover),1px 0 var(--border-color-hover),0 -1px var(--border-color-hover);color:var(--main-background);font-weight:bold}.kint-rich{--main-background: #f8f8f8;--secondary-background: #f8f8f8;--variable-type-color: #06f;--variable-type-color-hover: #f00;--border-color: #d7d7d7;--border-color-hover: #aaa;--alternative-background: #fff;--highlight-color: #cfc;--caret-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 150'><path d='M6 7h18l-9 15zm0 30h18l-9 15zm0 45h18l-9-15zm0 30h18l-9-15zm0 12l18 18m-18 0l18-18' fill='%23555'/><path d='M6 126l18 18m-18 0l18-18' stroke-width='2' stroke='%23555'/></svg>")}.kint-rich .kint-focused{box-shadow:0 0 3px 2px var(--variable-type-color-hover)}.kint-rich dt{font-weight:normal}.kint-rich dt.kint-parent{margin-top:4px}.kint-rich dl dl{margin-top:4px;padding-left:25px;border-left:none}.kint-rich>dl>dt{background:var(--secondary-background)}.kint-rich ul{margin:0;padding-left:0}.kint-rich ul:not(.kint-tabs)>li{border-left:0}.kint-rich ul.kint-tabs{background:var(--secondary-background);border:var(--border);border-width:0 1px 1px 1px;padding:4px 0 0 12px;margin-left:-1px;margin-top:-1px}.kint-rich ul.kint-tabs li,.kint-rich ul.kint-tabs li+li{margin:0 0 0 4px}.kint-rich ul.kint-tabs li{border-bottom-width:0;height:calc(var(--spacing)*6 + 1px)}.kint-rich ul.kint-tabs li:first-child{margin-left:0}.kint-rich ul.kint-tabs li.kint-active-tab{border-top:var(--border);background:var(--alternative-background);font-weight:bold;padding-top:0;border-bottom:1px solid var(--alternative-background) !important;margin-bottom:-1px}.kint-rich ul.kint-tabs li.kint-active-tab:hover{border-bottom:1px solid var(--alternative-background)}.kint-rich ul>li>pre{border:var(--border)}.kint-rich dt:hover+dd>ul{border-color:var(--border-color-hover)}.kint-rich pre{background:var(--alternative-background);margin-top:4px;margin-left:25px}.kint-rich .kint-source{margin-left:-1px}.kint-rich .kint-source .kint-highlight{background:var(--highlight-color)}.kint-rich .kint-parent.kint-show>.kint-search{border-bottom-width:1px}.kint-rich table td{background:var(--alternative-background)}.kint-rich table td>dl{padding:0;margin:0}.kint-rich table td>dl>dt.kint-parent{margin:0}.kint-rich table td:first-child,.kint-rich table td,.kint-rich table th{padding:2px 4px}.kint-rich table dd,.kint-rich table dt{background:var(--alternative-background)}.kint-rich table tr:hover>td{box-shadow:none;background:var(--highlight-color)}
+</style>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Input Score</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        :root {
+            --page-bg: #eff3f8;
+            --card-bg: #ffffff;
+            --card-bg-soft: #f8fbff;
+            --text-main: #111827;
+            --text-muted: #66758c;
+            --border-soft: #d8e1ec;
+            --shadow-soft: 0 20px 40px rgba(15, 23, 42, 0.08);
+            --shadow-thin: 0 10px 24px rgba(15, 23, 42, 0.05);
+            --primary-accent: #2563eb;
+            --success-accent: #16a34a;
+            --danger-accent: #dc2626;
+            --warning-accent: #f59e0b;
+            --surface-1: #ffffff;
+            --surface-2: #f6f9fc;
+            --surface-3: #eef4fb;
+            --surface-4: #e0ebf9;
+            --input-bg: #ffffff;
+            --table-head: #eff5fc;
+            --table-row: #ffffff;
+            --table-row-alt: #f8fbff;
+            --table-hover: #edf4ff;
+            --sticky-shadow: 8px 0 20px rgba(148, 163, 184, 0.18);
+            --pill-bg: #eff6ff;
+            --pill-text: #1e40af;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #f8fbff 0%, var(--page-bg) 100%);
+            color: var(--text-main);
+            transition: background 0.25s ease, color 0.25s ease;
+        }
+
+        body.dark-mode {
+            --page-bg: #07111f;
+            --card-bg: #0f172a;
+            --card-bg-soft: #111c31;
+            --text-main: #e5eefb;
+            --text-muted: #9db0ca;
+            --border-soft: #22324a;
+            --shadow-soft: 0 22px 52px rgba(2, 6, 23, 0.48);
+            --shadow-thin: 0 14px 28px rgba(2, 6, 23, 0.34);
+            --surface-1: #0f172a;
+            --surface-2: #101c32;
+            --surface-3: #15233d;
+            --surface-4: #1a2b49;
+            --input-bg: #0a1325;
+            --table-head: #13233d;
+            --table-row: #0f172a;
+            --table-row-alt: #111d33;
+            --table-hover: #172841;
+            --sticky-shadow: 12px 0 20px rgba(2, 6, 23, 0.45);
+            --pill-bg: #132845;
+            --pill-text: #dbeafe;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card,
+        .card,
+        .modal-content {
+            border: 1px solid var(--border-soft);
+            background: var(--card-bg);
+            box-shadow: var(--shadow-thin);
+            color: var(--text-main);
+        }
+
+        .card-header,
+        .modal-header,
+        .modal-footer,
+        .offcanvas,
+        .dropdown-menu {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border-color: var(--border-soft);
+        }
+
+        .text-muted,
+        .small.text-muted,
+        .form-text,
+        .page-subtitle,
+        .table-note {
+            color: var(--text-muted) !important;
+        }
+
+        .table {
+            --bs-table-bg: transparent;
+            --bs-table-striped-bg: var(--table-row-alt);
+            --bs-table-striped-color: var(--text-main);
+            --bs-table-hover-bg: var(--table-hover);
+            --bs-table-hover-color: var(--text-main);
+            --bs-table-border-color: var(--border-soft);
+            color: var(--text-main);
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            white-space: nowrap;
+            background: var(--table-head);
+            color: var(--text-main);
+            border-color: var(--border-soft);
+        }
+
+        .table > :not(caption) > * > * {
+            background: transparent;
+            color: var(--text-main);
+            border-color: var(--border-soft);
+        }
+
+        .form-control,
+        .form-select,
+        .input-group-text {
+            background: var(--input-bg);
+            color: var(--text-main);
+            border-color: var(--border-soft);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: var(--input-bg);
+            color: var(--text-main);
+            border-color: rgba(37, 99, 235, 0.5);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.16);
+        }
+
+        .form-control::placeholder {
+            color: #8ea0b8;
+        }
+
+        body.dark-mode .form-control::placeholder {
+            color: #6f86a8;
+        }
+
+        .btn-close {
+            filter: none;
+        }
+
+        body.dark-mode .btn-close {
+            filter: invert(1) grayscale(100%);
+        }
+
+        .navbar {
+            background: rgba(7, 16, 31, 0.92) !important;
+            backdrop-filter: blur(12px);
+        }
+
+        body.dark-mode .navbar {
+            background: rgba(2, 6, 23, 0.94) !important;
+        }
+
+        .alert {
+            border-color: var(--border-soft);
+            box-shadow: var(--shadow-thin);
+        }
+
+        .shadow-soft {
+            box-shadow: var(--shadow-soft);
+        }
+
+        .score-workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .score-title-card,
+        .score-control-card,
+        .score-reference-card {
+            border-radius: 1.15rem;
+            overflow: hidden;
+        }
+
+        .score-title-card {
+            padding: 1.25rem 1.5rem;
+            text-align: center;
+            background: linear-gradient(180deg, var(--surface-2) 0%, var(--card-bg) 100%);
+        }
+
+        .score-title-input {
+            max-width: 480px;
+            margin: 0 auto;
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.35rem;
+            letter-spacing: 0.01em;
+            border-radius: 1rem;
+        }
+
+        .score-control-card {
+            padding: 1rem 1.1rem;
+            background: var(--card-bg-soft);
+        }
+
+        .page-header-compact {
+            align-items: flex-start;
+        }
+
+        .pot-module-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+
+        .pot-module-card {
+            border-radius: 1.15rem;
+            border: 1px solid var(--border-soft);
+            overflow: visible;
+        }
+
+        .pot-module-current {
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.32), var(--shadow-soft);
+        }
+
+        .pot-module-body {
+            padding: 1.15rem;
+        }
+
+        .pot-module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .pot-module-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1 1 380px;
+        }
+
+        .pot-order-inline {
+            width: 86px;
+            border-radius: 0.9rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .pot-module-title-input {
+            border: 0;
+            box-shadow: none !important;
+            padding-inline: 0;
+            background: transparent !important;
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1.15;
+        }
+
+        .pot-module-title-input:focus {
+            border: 0;
+            outline: none;
+        }
+
+        .pot-module-actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            flex: 1 1 260px;
+        }
+
+        .pot-inline-panel {
+            padding: 0.95rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-soft);
+            background: var(--surface-2);
+        }
+
+        .pot-empty-state {
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px dashed var(--border-soft);
+            background: var(--surface-2);
+            color: var(--text-main);
+        }
+
+        .score-calculator-table {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .score-calculator-table th,
+        .score-calculator-table td {
+            padding: 0.65rem 0.55rem;
+            vertical-align: top;
+        }
+
+        .score-calculator-table .pot-table-no {
+            width: 72px;
+            text-align: center;
+        }
+
+        .score-calculator-table .pot-table-team {
+            width: 260px;
+        }
+
+        .score-calculator-table .action-col {
+            width: 92px;
+            text-align: center;
+        }
+
+        .compact-input {
+            min-height: 36px;
+            padding-block: 0.4rem;
+        }
+
+        .team-name-input {
+            margin-bottom: 0.4rem;
+        }
+
+        .team-members-inline {
+            font-size: 0.86rem;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .placement-cell,
+        .total-cell {
+            background: var(--surface-2);
+            font-weight: 800;
+            text-align: center;
+            vertical-align: middle !important;
+        }
+
+        .pot-module-footer {
+            margin-top: 0.9rem;
+            padding-top: 0.95rem;
+            border-top: 1px solid var(--border-soft);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .pot-delete-row {
+            margin-top: 0.9rem;
+            padding-top: 0.9rem;
+            border-top: 1px dashed var(--border-soft);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .auto-save-status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .auto-save-status[data-state="saving"] {
+            color: var(--primary-accent);
+        }
+
+        .auto-save-status[data-state="saved"] {
+            color: var(--success-accent);
+        }
+
+        .auto-save-status[data-state="error"] {
+            color: var(--danger-accent);
+        }
+
+        .auto-save-status[data-state="dirty"] {
+            color: var(--warning-accent);
+        }
+
+        .score-control-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .score-control-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .score-control-panel {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .score-action-row,
+        .score-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-items: center;
+        }
+
+        .score-action-row .btn,
+        .score-meta-row .btn,
+        .score-meta-row .badge,
+        .score-action-btn {
+            border-radius: 0.9rem;
+            min-height: 42px;
+            padding-inline: 0.95rem;
+        }
+
+        .score-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .game-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 0.9rem;
+            background: var(--surface-3);
+            border: 1px solid var(--border-soft);
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .game-chip strong {
+            font-size: 1rem;
+        }
+
+        .player-search-wrap {
+            position: relative;
+        }
+
+        .player-search-input {
+            border-radius: 1rem;
+            min-height: 46px;
+        }
+
+        .player-search-dropdown {
+            position: absolute;
+            top: calc(100% + 0.4rem);
+            left: 0;
+            right: 0;
+            z-index: 30;
+            display: none;
+            padding: 0.4rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-soft);
+            background: var(--card-bg);
+            box-shadow: var(--shadow-soft);
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .player-search-dropdown.show {
+            display: block;
+        }
+
+        .player-search-item {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: var(--text-main);
+            text-align: left;
+            padding: 0.7rem 0.8rem;
+            border-radius: 0.8rem;
+            transition: background 0.2s ease;
+        }
+
+        .player-search-item:hover,
+        .player-search-item:focus {
+            background: var(--surface-3);
+            outline: none;
+        }
+
+        .player-search-item small {
+            display: block;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .lookup-result {
+            min-height: 44px;
+            padding: 0.8rem 0.95rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-soft);
+            background: var(--surface-2);
+            color: var(--text-main);
+        }
+
+        .score-lock-banner {
+            padding: 0.95rem 1rem;
+            border-radius: 1rem;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--text-main);
+        }
+
+        body.dark-mode .score-lock-banner {
+            background: rgba(245, 158, 11, 0.18);
+            border-color: rgba(245, 158, 11, 0.36);
+        }
+
+        .score-table-shell {
+            overflow-x: auto;
+            border: 1px solid var(--border-soft);
+            border-radius: 1.15rem;
+            background: var(--card-bg);
+            box-shadow: var(--shadow-thin);
+        }
+
+        .score-table {
+            min-width: 1080px;
+        }
+
+        .score-table th,
+        .score-table td {
+            vertical-align: middle;
+        }
+
+        .score-table .sticky-col {
+            position: sticky;
+            z-index: 2;
+            box-shadow: var(--sticky-shadow);
+        }
+
+        .score-table .sticky-no {
+            left: 0;
+            min-width: 72px;
+            max-width: 72px;
+            text-align: center;
+            background: var(--table-head);
+        }
+
+        .score-table tbody .sticky-no {
+            background: var(--table-row);
+        }
+
+        .score-table .sticky-team {
+            left: 72px;
+            min-width: 280px;
+            background: var(--table-head);
+        }
+
+        .score-table tbody .sticky-team {
+            background: var(--table-row);
+        }
+
+        .score-table tbody tr:nth-child(odd) .sticky-no,
+        .score-table tbody tr:nth-child(odd) .sticky-team {
+            background: var(--table-row-alt);
+        }
+
+        .score-game-group {
+            text-align: center;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .score-subhead {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .score-team-input {
+            border-radius: 0.9rem;
+            font-weight: 700;
+            min-height: 42px;
+        }
+
+        .team-members-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-top: 0.55rem;
+        }
+
+        .team-member-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.32rem 0.6rem;
+            border-radius: 999px;
+            background: var(--pill-bg);
+            color: var(--pill-text);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        body.dark-mode .team-member-pill {
+            background: #173152;
+            color: #dbeafe;
+        }
+
+        .score-input {
+            min-width: 88px;
+            text-align: center;
+            border-radius: 0.8rem;
+        }
+
+        .score-readonly {
+            background: var(--surface-3) !important;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .score-total-cell {
+            min-width: 90px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 800;
+            background: var(--surface-2);
+        }
+
+        .team-row-highlight {
+            outline: 2px solid var(--primary-accent);
+            outline-offset: -2px;
+        }
+
+        .muted-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            background: var(--surface-3);
+            color: var(--text-main);
+            border: 1px solid var(--border-soft);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .score-reference-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .score-reference-image {
+            width: 100%;
+            max-height: 290px;
+            object-fit: contain;
+            border-radius: 1rem;
+            background: var(--surface-2);
+        }
+
+        .calculator-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .calculator-topbar,
+        .calculator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .compact-add-pot-form,
+        .compact-team-panel,
+        .pot-quick-form {
+            border: 1px solid var(--border-soft);
+            background: var(--surface-2);
+            border-radius: 1rem;
+        }
+
+        .compact-add-pot-form,
+        .pot-quick-form {
+            padding: 0.55rem 0.7rem;
+        }
+
+        .compact-team-panel {
+            padding: 0.85rem;
+        }
+
+        .compact-pot-name-input {
+            min-width: 190px;
+        }
+
+        .pot-switcher {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .pot-quick-form {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .pot-order-input {
+            width: 78px;
+        }
+
+        .pot-jump-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.85rem;
+            text-decoration: none;
+            color: var(--text-main);
+            border: 1px solid transparent;
+            transition: 0.2s ease;
+            font-weight: 700;
+        }
+
+        .pot-jump-link:hover {
+            background: var(--surface-3);
+            border-color: var(--border-soft);
+        }
+
+        .pot-jump-link.active {
+            background: var(--primary-accent);
+            color: #eff6ff;
+        }
+
+        .calculator-header-main {
+            flex: 1 1 320px;
+        }
+
+        .calculator-header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+        }
+
+        .score-calculator-table {
+            min-width: 980px;
+        }
+
+        .score-calculator-table .sticky-col {
+            position: sticky;
+            z-index: 2;
+            box-shadow: var(--sticky-shadow);
+        }
+
+        .score-calculator-table .sticky-col-no {
+            left: 0;
+            min-width: 64px;
+            background: var(--table-head);
+        }
+
+        .score-calculator-table .sticky-col-team {
+            left: 64px;
+            min-width: 240px;
+            background: var(--table-head);
+        }
+
+        .score-calculator-table tbody .sticky-col-no,
+        .score-calculator-table tbody .sticky-col-team {
+            background: var(--table-row);
+        }
+
+        .score-calculator-table tbody tr:nth-child(odd) .sticky-col-no,
+        .score-calculator-table tbody tr:nth-child(odd) .sticky-col-team {
+            background: var(--table-row-alt);
+        }
+
+        .placement-cell,
+        .total-cell {
+            background: var(--surface-3);
+            font-weight: 700;
+        }
+
+        .pot-name-input,
+        .team-name-input {
+            border-radius: 0.95rem;
+        }
+
+        .pot-name-input {
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .team-name-hover {
+            position: relative;
+        }
+
+        .team-hover-popup {
+            display: none;
+            position: absolute;
+            top: calc(100% + 0.35rem);
+            left: 0;
+            min-width: 240px;
+            max-width: 320px;
+            padding: 0.8rem;
+            border-radius: 0.9rem;
+            border: 1px solid var(--border-soft);
+            background: var(--card-bg);
+            box-shadow: var(--shadow-soft);
+            z-index: 30;
+        }
+
+        .team-name-hover:hover .team-hover-popup,
+        .team-name-hover:focus-within .team-hover-popup {
+            display: block;
+        }
+
+        .calculator-bottom-add-pot {
+            justify-content: center;
+        }
+
+        .status-chip {
+            border-radius: 999px;
+            padding: 0.5rem 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .event-mini-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+        }
+
+        .mini-stat {
+            min-width: 148px;
+            padding: 0.85rem 1rem;
+            border-radius: 1rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border-soft);
+        }
+
+        .mini-stat-label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.28rem;
+        }
+
+        .mini-stat-value {
+            display: block;
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        body.dark-mode .text-white-50 {
+            color: #9db0ca !important;
+        }
+
+        body.dark-mode .btn-outline-secondary,
+        body.dark-mode .btn-outline-dark,
+        body.dark-mode .btn-outline-primary,
+        body.dark-mode .btn-outline-success,
+        body.dark-mode .btn-outline-danger {
+            color: #dbeafe;
+            border-color: #51647f;
+        }
+
+        body.dark-mode .btn-outline-primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+            color: #eff6ff;
+        }
+
+        body.dark-mode .btn-outline-danger:hover {
+            background: #be123c;
+            border-color: #be123c;
+            color: #fff1f2;
+        }
+
+        body.dark-mode .btn-outline-secondary:hover,
+        body.dark-mode .btn-outline-dark:hover {
+            background: #dbeafe;
+            border-color: #dbeafe;
+            color: #0f172a;
+        }
+
+        body.dark-mode .btn-outline-secondary:hover,
+        body.dark-mode .btn-outline-dark:hover,
+        body.dark-mode .btn-outline-success:hover {
+            color: #0f172a;
+        }
+
+        body.dark-mode .page-subtitle,
+        body.dark-mode .form-text,
+        body.dark-mode .status-chip,
+        body.dark-mode .badge,
+        body.dark-mode .lookup-result {
+            color: var(--text-main) !important;
+        }
+
+        body.dark-mode .compact-add-pot-form,
+        body.dark-mode .compact-team-panel,
+        body.dark-mode .pot-quick-form,
+        body.dark-mode .team-hover-popup {
+            background: var(--surface-2);
+        }
+
+        body.dark-mode .pot-jump-link.active {
+            background: #dbeafe;
+            color: #0f172a;
+        }
+
+        body.dark-mode .form-control:disabled,
+        body.dark-mode .form-select:disabled {
+            background: #0d1628;
+            color: #8ea0b8;
+        }
+
+        body.dark-mode .pot-inline-panel,
+        body.dark-mode .pot-empty-state,
+        body.dark-mode .placement-cell,
+        body.dark-mode .total-cell {
+            background: var(--surface-2) !important;
+        }
+
+        body.dark-mode .pot-module-title-input,
+        body.dark-mode .team-members-inline,
+        body.dark-mode .team-name-input,
+        body.dark-mode .auto-save-status {
+            color: var(--text-main);
+        }
+
+        body.dark-mode .btn-outline-secondary,
+        body.dark-mode .btn-outline-danger,
+        body.dark-mode .btn-outline-primary {
+            background: transparent;
+        }
+
+        body.dark-mode .table-responsive,
+        body.dark-mode .score-table-shell {
+            background: var(--card-bg);
+        }
+
+        body.dark-mode .dropdown-menu,
+        body.dark-mode .offcanvas,
+        body.dark-mode .modal-content,
+        body.dark-mode .modal-header,
+        body.dark-mode .modal-body,
+        body.dark-mode .modal-footer,
+        body.dark-mode .bg-white,
+        body.dark-mode .bg-light-subtle,
+        body.dark-mode .table-light {
+            background: var(--card-bg) !important;
+            color: var(--text-main) !important;
+        }
+
+        @media (max-width: 991.98px) {
+            .page-header,
+            .score-control-head {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .page-header {
+                align-items: stretch;
+            }
+
+            .calculator-topbar,
+            .calculator-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .score-action-row,
+            .score-meta-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .score-action-row .btn,
+            .score-meta-row .btn,
+            .score-action-btn,
+            .muted-badge {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .score-title-input {
+                max-width: 100%;
+            }
+
+            .score-table .sticky-team {
+                min-width: 220px;
+            }
+
+            .pot-switcher,
+            .pot-quick-form {
+                width: 100%;
+            }
+
+            .pot-jump-link {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+
+            .pot-module-header,
+            .pot-module-footer,
+            .pot-delete-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pot-module-title-row,
+            .pot-module-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .score-calculator-table .pot-table-team {
+                width: auto;
+            }
+
+            .score-calculator-table .action-col {
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- DEBUG-VIEW START 3 APPPATH\Views\partials\navbar.php -->
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-semibold" href="http://localhost:8000/index.php/dashboard">Battleground Calc</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link " href="http://localhost:8000/index.php/dashboard">Dashboard</a>
+                </li>
+                                    <li class="nav-item">
+                        <a class="nav-link " href="http://localhost:8000/index.php/dashboard">Management Event</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="http://localhost:8000/index.php/imports/registrations">Import Registrations</a>
+                    </li>
+                            </ul>
+
+            <div class="d-flex align-items-center gap-3 text-white">
+                <button type="button" class="btn btn-outline-light btn-sm" id="themeToggleBtn">Dark Mode</button>
+                <div class="small">
+                    <div class="fw-semibold">public_dummy</div>
+                    <div class="text-white-50">Admin</div>
+                </div>
+                <a href="http://localhost:8000/index.php/logout" class="btn btn-outline-light btn-sm">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- DEBUG-VIEW ENDED 3 APPPATH\Views\partials\navbar.php -->
+
+    <main class="py-4">
+        <div class="container">
+            <!-- DEBUG-VIEW START 4 APPPATH\Views\partials\flash.php -->
+
+
+
+
+<!-- DEBUG-VIEW ENDED 4 APPPATH\Views\partials\flash.php -->
+            
+<div class="page-header page-header-compact">
+    <div>
+        <h1 class="h3 mb-1">Battleground Demo Tournament</h1>
+        <p class="page-subtitle mb-0">Semua pot dan penghitungan score ada dalam satu halaman kerja.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <span class="badge text-bg-warning status-chip">Belum Mulai</span>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#statusTournamentModal">
+                Ubah Status
+            </button>
+                <form action="http://localhost:8000/index.php/pots/store" method="post" class="m-0">
+            <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">            <input type="hidden" name="tournament_id" value="1">
+            <input type="hidden" name="redirect_to" value="http://localhost:8000/index.php/pots/2/scores">
+            <button type="submit" class="btn btn-primary" >Add Pot</button>
+        </form>
+        <a href="http://localhost:8000/index.php/dashboard" class="btn btn-outline-secondary">Dashboard</a>
+    </div>
+</div>
+
+
+<div class="pot-module-stack">
+            <!-- DEBUG-VIEW START 1 APPPATH\Views\scores\_calculator.php -->
+
+<section class="card stat-card pot-module-card pot-module-current" id="pot-card-2">
+    <div class="card-body pot-module-body">
+
+<div class="pot-module-header">
+    <div class="pot-module-title-row">
+        <input
+            type="number"
+            name="pot_sort_order"
+            form="scoreCalculatorForm-2"
+            class="form-control form-control-sm pot-order-inline"
+            value="1"
+            min="0"
+                    >
+        <input
+            type="text"
+            name="pot_name"
+            form="scoreCalculatorForm-2"
+            class="form-control pot-module-title-input"
+            value="POT 2"
+                    >
+    </div>
+
+    <div class="pot-module-actions">
+        <form action="http://localhost:8000/index.php/teams/store" method="post" class="m-0 pot-add-team-form">
+            <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">            <input type="hidden" name="pot_id" value="2">
+            <input type="hidden" name="redirect_to" value="http://localhost:8000/index.php/pots/2/scores">
+            <button type="submit" class="btn btn-outline-secondary btn-sm" >Add Team</button>
+        </form>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="addGameBtn-2" >+ Game</button>
+        <button type="button" class="btn btn-outline-danger btn-sm" id="removeGameBtn-2" >- Game</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#potScreenshotsCollapse-2" >Screenshot</button>
+    </div>
+</div>
+
+<div class="collapse mb-3" id="potScreenshotsCollapse-2">
+    <div class="pot-inline-panel">
+        <form action="http://localhost:8000/index.php/pots/update-images/2" method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Screenshot 1</label>
+                <input type="file" class="form-control form-control-sm" name="reference_image_1" accept="image/*" >
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Screenshot 2</label>
+                <input type="file" class="form-control form-control-sm" name="reference_image_2" accept="image/*" >
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-primary" >Upload</button>
+            </div>
+        </form>
+
+            </div>
+</div>
+
+<form action="http://localhost:8000/index.php/scores/save-bulk" method="post" id="scoreCalculatorForm-2" class="pot-calculator-form" data-can-manage="1">
+    <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">    <input type="hidden" name="pot_id" value="2">
+    <input type="hidden" name="game_count" id="gameCountInput-2" value="1">
+
+            <table class="table table-bordered score-calculator-table" id="scoreCalculatorTable-2">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="text-center align-middle pot-table-no">No</th>
+                    <th rowspan="2" class="align-middle pot-table-team">Team</th>
+                                            <th colspan="3" class="text-center game-group" data-game-group="1">Game 1</th>
+                                        <th rowspan="2" class="text-center align-middle total-col">Total</th>
+                    <th rowspan="2" class="text-center align-middle action-col">Aksi</th>
+                </tr>
+                <tr id="gameSubHeaderRow-2">
+                                            <th class="text-center game-subhead" data-game-col="1" data-col-role="rank">Rank</th>
+                        <th class="text-center game-subhead" data-game-col="1" data-col-role="placement">P.Rank</th>
+                        <th class="text-center game-subhead" data-game-col="1" data-col-role="kill">Kill</th>
+                                    </tr>
+            </thead>
+            <tbody>
+                                                        <tr data-team-row data-team-id="5">
+                        <td class="text-center pot-table-no">1</td>
+                        <td class="pot-table-team">
+                            <div class="team-name-hover" title="Belum ada anggota team">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm fw-semibold team-name-input compact-input"
+                                    name="team_names[5]"
+                                    value="Team 2"
+                                                                    >
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm compact-input team-members-inline"
+                                    name="team_members_text[5]"
+                                    value=""
+                                    placeholder="Nick1, Nick2, Nick3"
+                                                                    >
+                                <div class="team-hover-popup">
+                                                                            <div class="small text-muted">Belum ada anggota team</div>
+                                                                    </div>
+                            </div>
+                        </td>
+                                                                                <td class="game-cell" data-game-col="1" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[5][1][rank_no]"
+                                    value=""
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="1" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="1" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[5][1][kill_point]"
+                                    value=""
+                                                                    >
+                            </td>
+                                                <td class="text-center total-cell">0</td>
+                        <td class="text-center action-col">
+                            <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm row-delete-team"
+                                data-team-id="5"
+                                data-delete-url="http://localhost:8000/index.php/teams/delete/5"
+                                                            >
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                                                        <tr data-team-row data-team-id="4">
+                        <td class="text-center pot-table-no">2</td>
+                        <td class="pot-table-team">
+                            <div class="team-name-hover" title="Belum ada anggota team">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm fw-semibold team-name-input compact-input"
+                                    name="team_names[4]"
+                                    value="Team1"
+                                                                    >
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm compact-input team-members-inline"
+                                    name="team_members_text[4]"
+                                    value=""
+                                    placeholder="Nick1, Nick2, Nick3"
+                                                                    >
+                                <div class="team-hover-popup">
+                                                                            <div class="small text-muted">Belum ada anggota team</div>
+                                                                    </div>
+                            </div>
+                        </td>
+                                                                                <td class="game-cell" data-game-col="1" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[4][1][rank_no]"
+                                    value=""
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="1" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="1" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[4][1][kill_point]"
+                                    value=""
+                                                                    >
+                            </td>
+                                                <td class="text-center total-cell">0</td>
+                        <td class="text-center action-col">
+                            <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm row-delete-team"
+                                data-team-id="4"
+                                data-delete-url="http://localhost:8000/index.php/teams/delete/4"
+                                                            >
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                            </tbody>
+        </table>
+    
+    <div class="pot-module-footer">
+        <div class="auto-save-status" id="autoSaveStatus-2">Tersimpan otomatis.</div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="http://localhost:8000/index.php/leaderboard/pot/2" class="btn btn-outline-secondary btn-sm">Hasil</a>
+        </div>
+    </div>
+</form>
+
+<div class="pot-delete-row">
+    <form action="http://localhost:8000/index.php/pots/delete/2" method="post" onsubmit="return confirm('Hapus pot ini?');">
+        <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">        <button type="submit" class="btn btn-outline-danger btn-sm" >Delete Pot</button>
+    </form>
+</div>
+
+    </div>
+</section>
+
+<script>
+    (() => {
+        const placementPoints = {"1":12,"2":9,"3":8,"4":7,"5":6,"6":5,"7":4,"8":3,"9":2,"10":1,"11":0,"12":0};
+        const table = document.getElementById('scoreCalculatorTable-2');
+        const form = document.getElementById('scoreCalculatorForm-2');
+        const addGameBtn = document.getElementById('addGameBtn-2');
+        const removeGameBtn = document.getElementById('removeGameBtn-2');
+        const gameCountInput = document.getElementById('gameCountInput-2');
+        const subHeaderRow = document.getElementById('gameSubHeaderRow-2');
+        const autoSaveStatus = document.getElementById('autoSaveStatus-2');
+        const canManage = true;
+        let saveTimer = null;
+        let isSaving = false;
+
+        if (!table || !form || !gameCountInput || !subHeaderRow) {
+            return;
+        }
+
+        const updateCsrf = (tokenName, hash) => {
+            if (!tokenName || !hash) {
+                return;
+            }
+
+            document.querySelectorAll(`input[name="${tokenName}"]`).forEach((input) => {
+                input.value = hash;
+            });
+        };
+
+        const setStatus = (text, state = 'idle') => {
+            if (!autoSaveStatus) {
+                return;
+            }
+
+            autoSaveStatus.textContent = text;
+            autoSaveStatus.dataset.state = state;
+        };
+
+        const updateRowNumbers = () => {
+            table.querySelectorAll('tbody tr[data-team-row]').forEach((row, index) => {
+                const noCell = row.querySelector('.pot-table-no');
+                if (noCell) {
+                    noCell.textContent = String(index + 1);
+                }
+            });
+        };
+
+        const updateRowTotals = (row) => {
+            let total = 0;
+
+            row.querySelectorAll('[data-col-role="rank"]').forEach((rankCell) => {
+                const gameNo = rankCell.dataset.gameCol;
+                const rankInput = rankCell.querySelector('input');
+                const killInput = row.querySelector(`[data-col-role="kill"][data-game-col="${gameNo}"] input`);
+                const placementCell = row.querySelector(`[data-col-role="placement"][data-game-col="${gameNo}"]`);
+                const rankValue = parseInt(rankInput?.value || '', 10);
+                const killValue = parseInt(killInput?.value || '', 10);
+                const placement = placementPoints[rankValue] ?? 0;
+
+                if (placementCell) {
+                    placementCell.textContent = placement;
+                }
+
+                total += placement + (Number.isNaN(killValue) ? 0 : killValue);
+            });
+
+            const totalCell = row.querySelector('.total-cell');
+            if (totalCell) {
+                totalCell.textContent = total;
+            }
+        };
+
+        const bindRowInputs = (container) => {
+            container.querySelectorAll('.js-rank-input, .js-kill-input').forEach((input) => {
+                if (input.dataset.bound === 'true') {
+                    return;
+                }
+
+                input.dataset.bound = 'true';
+                input.addEventListener('input', () => {
+                    const row = input.closest('tr[data-team-row]');
+                    if (row) {
+                        updateRowTotals(row);
+                    }
+                    queueSave();
+                });
+            });
+        };
+
+        const updateAllRows = () => {
+            table.querySelectorAll('tbody tr[data-team-row]').forEach(updateRowTotals);
+            updateRowNumbers();
+        };
+
+        const createGameHeader = (gameNo) => {
+            const th = document.createElement('th');
+            th.colSpan = 3;
+            th.className = 'text-center game-group';
+            th.dataset.gameGroup = String(gameNo);
+            th.textContent = `Game ${gameNo}`;
+            return th;
+        };
+
+        const createSubHeader = (gameNo, label, role) => {
+            const th = document.createElement('th');
+            th.className = 'text-center game-subhead';
+            th.dataset.gameCol = String(gameNo);
+            th.dataset.colRole = role;
+            th.textContent = label;
+            return th;
+        };
+
+        const appendGameColumns = (gameNo) => {
+            const totalHead = table.querySelector('.total-col');
+            const firstHeaderRow = table.querySelector('thead tr:first-child');
+            firstHeaderRow.insertBefore(createGameHeader(gameNo), totalHead);
+
+            subHeaderRow.appendChild(createSubHeader(gameNo, 'Rank', 'rank'));
+            subHeaderRow.appendChild(createSubHeader(gameNo, 'P.Rank', 'placement'));
+            subHeaderRow.appendChild(createSubHeader(gameNo, 'Kill', 'kill'));
+
+            table.querySelectorAll('tbody tr[data-team-row]').forEach((row) => {
+                const totalCell = row.querySelector('.total-cell');
+                const actionCell = row.querySelector('.action-col');
+                const teamId = row.dataset.teamId;
+
+                if (!teamId || !totalCell || !actionCell) {
+                    return;
+                }
+
+                const rankTd = document.createElement('td');
+                rankTd.className = 'game-cell';
+                rankTd.dataset.gameCol = String(gameNo);
+                rankTd.dataset.colRole = 'rank';
+                rankTd.innerHTML = `<input type="number" min="1" max="12" class="form-control form-control-sm text-center js-rank-input compact-input" name="scores[${teamId}][${gameNo}][rank_no]">`;
+
+                const placementTd = document.createElement('td');
+                placementTd.className = 'text-center placement-cell';
+                placementTd.dataset.gameCol = String(gameNo);
+                placementTd.dataset.colRole = 'placement';
+                placementTd.textContent = '0';
+
+                const killTd = document.createElement('td');
+                killTd.className = 'game-cell';
+                killTd.dataset.gameCol = String(gameNo);
+                killTd.dataset.colRole = 'kill';
+                killTd.innerHTML = `<input type="number" min="0" class="form-control form-control-sm text-center js-kill-input compact-input" name="scores[${teamId}][${gameNo}][kill_point]">`;
+
+                row.insertBefore(rankTd, totalCell);
+                row.insertBefore(placementTd, totalCell);
+                row.insertBefore(killTd, totalCell);
+                bindRowInputs(row);
+                updateRowTotals(row);
+            });
+        };
+
+        const removeGameColumns = (gameNo) => {
+            table.querySelector(`[data-game-group="${gameNo}"]`)?.remove();
+            table.querySelectorAll(`[data-game-col="${gameNo}"]`).forEach((el) => el.remove());
+            updateAllRows();
+        };
+
+        const saveNow = async () => {
+            if (!canManage || isSaving) {
+                return;
+            }
+
+            isSaving = true;
+            setStatus('Menyimpan...', 'saving');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new FormData(form),
+                });
+
+                const data = await response.json();
+                updateCsrf(data.csrfTokenName, data.csrfHash);
+
+                if (!response.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Gagal menyimpan perubahan.');
+                }
+
+                setStatus('Tersimpan otomatis.', 'saved');
+            } catch (error) {
+                setStatus(error.message || 'Gagal menyimpan.', 'error');
+            } finally {
+                isSaving = false;
+            }
+        };
+
+        const queueSave = () => {
+            if (!canManage) {
+                return;
+            }
+
+            clearTimeout(saveTimer);
+            setStatus('Perubahan belum disimpan...', 'dirty');
+            saveTimer = setTimeout(() => {
+                saveNow();
+            }, 650);
+        };
+
+        bindRowInputs(table);
+        updateAllRows();
+
+        form.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+
+            if (target.tagName === 'TEXTAREA') {
+                event.preventDefault();
+                target.blur();
+                return;
+            }
+
+            if (target.tagName === 'INPUT') {
+                event.preventDefault();
+                const focusables = Array.from(form.querySelectorAll('input, button, textarea, select'))
+                    .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('type') !== 'hidden');
+                const index = focusables.indexOf(target);
+                const next = focusables[index + 1];
+                if (next instanceof HTMLElement) {
+                    next.focus();
+                    if (typeof next.select === 'function') {
+                        next.select();
+                    }
+                } else {
+                    target.blur();
+                }
+            }
+        });
+
+        form.querySelectorAll('input[type="text"], input[type="number"]').forEach((input) => {
+            input.addEventListener('input', queueSave);
+            input.addEventListener('blur', queueSave);
+        });
+
+        if (canManage) {
+            addGameBtn?.addEventListener('click', () => {
+                const nextGameNo = parseInt(gameCountInput.value, 10) + 1;
+                gameCountInput.value = String(nextGameNo);
+                appendGameColumns(nextGameNo);
+                queueSave();
+            });
+
+            removeGameBtn?.addEventListener('click', () => {
+                const currentGameNo = parseInt(gameCountInput.value, 10);
+
+                if (currentGameNo <= 1) {
+                    window.alert('Minimal harus ada 1 game.');
+                    return;
+                }
+
+                gameCountInput.value = String(currentGameNo - 1);
+                removeGameColumns(currentGameNo);
+                queueSave();
+            });
+
+            table.querySelectorAll('.row-delete-team').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    if (!window.confirm('Hapus team ini?')) {
+                        return;
+                    }
+
+                    try {
+                        const tokenInput = form.querySelector('input[name="csrf_test_name"]');
+                        const payload = new FormData();
+                        if (tokenInput) {
+                            payload.append(tokenInput.name, tokenInput.value);
+                        }
+
+                        const response = await fetch(button.dataset.deleteUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: payload,
+                        });
+
+                        const data = await response.json();
+                        updateCsrf(data.csrfTokenName, data.csrfHash);
+
+                        if (!response.ok || data.status !== 'success') {
+                            throw new Error(data.message || 'Gagal menghapus team.');
+                        }
+
+                        button.closest('tr[data-team-row]')?.remove();
+                        updateAllRows();
+                        setStatus('Team dihapus.', 'saved');
+                    } catch (error) {
+                        setStatus(error.message || 'Gagal menghapus team.', 'error');
+                    }
+                });
+            });
+        }
+    })();
+</script>
+
+<!-- DEBUG-VIEW ENDED 1 APPPATH\Views\scores\_calculator.php -->
+            <!-- DEBUG-VIEW START 2 APPPATH\Views\scores\_calculator.php -->
+
+<section class="card stat-card pot-module-card " id="pot-card-1">
+    <div class="card-body pot-module-body">
+
+<div class="pot-module-header">
+    <div class="pot-module-title-row">
+        <input
+            type="number"
+            name="pot_sort_order"
+            form="scoreCalculatorForm-1"
+            class="form-control form-control-sm pot-order-inline"
+            value="2"
+            min="0"
+                    >
+        <input
+            type="text"
+            name="pot_name"
+            form="scoreCalculatorForm-1"
+            class="form-control pot-module-title-input"
+            value="POT 1"
+                    >
+    </div>
+
+    <div class="pot-module-actions">
+        <form action="http://localhost:8000/index.php/teams/store" method="post" class="m-0 pot-add-team-form">
+            <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">            <input type="hidden" name="pot_id" value="1">
+            <input type="hidden" name="redirect_to" value="http://localhost:8000/index.php/pots/2/scores">
+            <button type="submit" class="btn btn-outline-secondary btn-sm" >Add Team</button>
+        </form>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="addGameBtn-1" >+ Game</button>
+        <button type="button" class="btn btn-outline-danger btn-sm" id="removeGameBtn-1" >- Game</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#potScreenshotsCollapse-1" >Screenshot</button>
+    </div>
+</div>
+
+<div class="collapse mb-3" id="potScreenshotsCollapse-1">
+    <div class="pot-inline-panel">
+        <form action="http://localhost:8000/index.php/pots/update-images/1" method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Screenshot 1</label>
+                <input type="file" class="form-control form-control-sm" name="reference_image_1" accept="image/*" >
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Screenshot 2</label>
+                <input type="file" class="form-control form-control-sm" name="reference_image_2" accept="image/*" >
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-primary" >Upload</button>
+            </div>
+        </form>
+
+            </div>
+</div>
+
+<form action="http://localhost:8000/index.php/scores/save-bulk" method="post" id="scoreCalculatorForm-1" class="pot-calculator-form" data-can-manage="1">
+    <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">    <input type="hidden" name="pot_id" value="1">
+    <input type="hidden" name="game_count" id="gameCountInput-1" value="2">
+
+            <table class="table table-bordered score-calculator-table" id="scoreCalculatorTable-1">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="text-center align-middle pot-table-no">No</th>
+                    <th rowspan="2" class="align-middle pot-table-team">Team</th>
+                                            <th colspan="3" class="text-center game-group" data-game-group="1">Game 1</th>
+                                            <th colspan="3" class="text-center game-group" data-game-group="2">Game 2</th>
+                                        <th rowspan="2" class="text-center align-middle total-col">Total</th>
+                    <th rowspan="2" class="text-center align-middle action-col">Aksi</th>
+                </tr>
+                <tr id="gameSubHeaderRow-1">
+                                            <th class="text-center game-subhead" data-game-col="1" data-col-role="rank">Rank</th>
+                        <th class="text-center game-subhead" data-game-col="1" data-col-role="placement">P.Rank</th>
+                        <th class="text-center game-subhead" data-game-col="1" data-col-role="kill">Kill</th>
+                                            <th class="text-center game-subhead" data-game-col="2" data-col-role="rank">Rank</th>
+                        <th class="text-center game-subhead" data-game-col="2" data-col-role="placement">P.Rank</th>
+                        <th class="text-center game-subhead" data-game-col="2" data-col-role="kill">Kill</th>
+                                    </tr>
+            </thead>
+            <tbody>
+                                                        <tr data-team-row data-team-id="1">
+                        <td class="text-center pot-table-no">1</td>
+                        <td class="pot-table-team">
+                            <div class="team-name-hover" title="Alpha Player 3 | Alpha Player 2 | Alpha Player 1">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm fw-semibold team-name-input compact-input"
+                                    name="team_names[1]"
+                                    value="Team Alpha"
+                                                                    >
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm compact-input team-members-inline"
+                                    name="team_members_text[1]"
+                                    value="Alpha Player 3, Alpha Player 2, Alpha Player 1"
+                                    placeholder="Nick1, Nick2, Nick3"
+                                                                    >
+                                <div class="team-hover-popup">
+                                                                                                                        <div>
+                                                Alpha Player 3                                                                                            </div>
+                                                                                    <div>
+                                                Alpha Player 2                                                                                            </div>
+                                                                                    <div>
+                                                Alpha Player 1                                                                                            </div>
+                                                                                                            </div>
+                            </div>
+                        </td>
+                                                                                <td class="game-cell" data-game-col="1" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[1][1][rank_no]"
+                                    value="1"
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="1" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="1" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[1][1][kill_point]"
+                                    value="5"
+                                                                    >
+                            </td>
+                                                                                <td class="game-cell" data-game-col="2" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[1][2][rank_no]"
+                                    value="3"
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="2" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="2" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[1][2][kill_point]"
+                                    value="4"
+                                                                    >
+                            </td>
+                                                <td class="text-center total-cell">29</td>
+                        <td class="text-center action-col">
+                            <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm row-delete-team"
+                                data-team-id="1"
+                                data-delete-url="http://localhost:8000/index.php/teams/delete/1"
+                                                            >
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                                                        <tr data-team-row data-team-id="2">
+                        <td class="text-center pot-table-no">2</td>
+                        <td class="pot-table-team">
+                            <div class="team-name-hover" title="Bravo Player 2 | Bravo Player 1">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm fw-semibold team-name-input compact-input"
+                                    name="team_names[2]"
+                                    value="Team Bravo"
+                                                                    >
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm compact-input team-members-inline"
+                                    name="team_members_text[2]"
+                                    value="Bravo Player 2, Bravo Player 1"
+                                    placeholder="Nick1, Nick2, Nick3"
+                                                                    >
+                                <div class="team-hover-popup">
+                                                                                                                        <div>
+                                                Bravo Player 2                                                                                            </div>
+                                                                                    <div>
+                                                Bravo Player 1                                                                                            </div>
+                                                                                                            </div>
+                            </div>
+                        </td>
+                                                                                <td class="game-cell" data-game-col="1" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[2][1][rank_no]"
+                                    value="2"
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="1" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="1" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[2][1][kill_point]"
+                                    value="3"
+                                                                    >
+                            </td>
+                                                                                <td class="game-cell" data-game-col="2" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[2][2][rank_no]"
+                                    value="1"
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="2" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="2" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[2][2][kill_point]"
+                                    value="6"
+                                                                    >
+                            </td>
+                                                <td class="text-center total-cell">30</td>
+                        <td class="text-center action-col">
+                            <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm row-delete-team"
+                                data-team-id="2"
+                                data-delete-url="http://localhost:8000/index.php/teams/delete/2"
+                                                            >
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                                                        <tr data-team-row data-team-id="3">
+                        <td class="text-center pot-table-no">3</td>
+                        <td class="pot-table-team">
+                            <div class="team-name-hover" title="Belum ada anggota team">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm fw-semibold team-name-input compact-input"
+                                    name="team_names[3]"
+                                    value="Team Charlie"
+                                                                    >
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm compact-input team-members-inline"
+                                    name="team_members_text[3]"
+                                    value=""
+                                    placeholder="Nick1, Nick2, Nick3"
+                                                                    >
+                                <div class="team-hover-popup">
+                                                                            <div class="small text-muted">Belum ada anggota team</div>
+                                                                    </div>
+                            </div>
+                        </td>
+                                                                                <td class="game-cell" data-game-col="1" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[3][1][rank_no]"
+                                    value="4"
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="1" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="1" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[3][1][kill_point]"
+                                    value="2"
+                                                                    >
+                            </td>
+                                                                                <td class="game-cell" data-game-col="2" data-col-role="rank">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="12"
+                                    class="form-control form-control-sm text-center js-rank-input compact-input"
+                                    name="scores[3][2][rank_no]"
+                                    value="6"
+                                                                    >
+                            </td>
+                            <td class="text-center placement-cell" data-game-col="2" data-col-role="placement">0</td>
+                            <td class="game-cell" data-game-col="2" data-col-role="kill">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    class="form-control form-control-sm text-center js-kill-input compact-input"
+                                    name="scores[3][2][kill_point]"
+                                    value="1"
+                                                                    >
+                            </td>
+                                                <td class="text-center total-cell">15</td>
+                        <td class="text-center action-col">
+                            <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm row-delete-team"
+                                data-team-id="3"
+                                data-delete-url="http://localhost:8000/index.php/teams/delete/3"
+                                                            >
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                            </tbody>
+        </table>
+    
+    <div class="pot-module-footer">
+        <div class="auto-save-status" id="autoSaveStatus-1">Tersimpan otomatis.</div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="http://localhost:8000/index.php/leaderboard/pot/1" class="btn btn-outline-secondary btn-sm">Hasil</a>
+        </div>
+    </div>
+</form>
+
+<div class="pot-delete-row">
+    <form action="http://localhost:8000/index.php/pots/delete/1" method="post" onsubmit="return confirm('Hapus pot ini?');">
+        <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">        <button type="submit" class="btn btn-outline-danger btn-sm" >Delete Pot</button>
+    </form>
+</div>
+
+    </div>
+</section>
+
+<script>
+    (() => {
+        const placementPoints = {"1":12,"2":9,"3":8,"4":7,"5":6,"6":5,"7":4,"8":3,"9":2,"10":1,"11":0,"12":0};
+        const table = document.getElementById('scoreCalculatorTable-1');
+        const form = document.getElementById('scoreCalculatorForm-1');
+        const addGameBtn = document.getElementById('addGameBtn-1');
+        const removeGameBtn = document.getElementById('removeGameBtn-1');
+        const gameCountInput = document.getElementById('gameCountInput-1');
+        const subHeaderRow = document.getElementById('gameSubHeaderRow-1');
+        const autoSaveStatus = document.getElementById('autoSaveStatus-1');
+        const canManage = true;
+        let saveTimer = null;
+        let isSaving = false;
+
+        if (!table || !form || !gameCountInput || !subHeaderRow) {
+            return;
+        }
+
+        const updateCsrf = (tokenName, hash) => {
+            if (!tokenName || !hash) {
+                return;
+            }
+
+            document.querySelectorAll(`input[name="${tokenName}"]`).forEach((input) => {
+                input.value = hash;
+            });
+        };
+
+        const setStatus = (text, state = 'idle') => {
+            if (!autoSaveStatus) {
+                return;
+            }
+
+            autoSaveStatus.textContent = text;
+            autoSaveStatus.dataset.state = state;
+        };
+
+        const updateRowNumbers = () => {
+            table.querySelectorAll('tbody tr[data-team-row]').forEach((row, index) => {
+                const noCell = row.querySelector('.pot-table-no');
+                if (noCell) {
+                    noCell.textContent = String(index + 1);
+                }
+            });
+        };
+
+        const updateRowTotals = (row) => {
+            let total = 0;
+
+            row.querySelectorAll('[data-col-role="rank"]').forEach((rankCell) => {
+                const gameNo = rankCell.dataset.gameCol;
+                const rankInput = rankCell.querySelector('input');
+                const killInput = row.querySelector(`[data-col-role="kill"][data-game-col="${gameNo}"] input`);
+                const placementCell = row.querySelector(`[data-col-role="placement"][data-game-col="${gameNo}"]`);
+                const rankValue = parseInt(rankInput?.value || '', 10);
+                const killValue = parseInt(killInput?.value || '', 10);
+                const placement = placementPoints[rankValue] ?? 0;
+
+                if (placementCell) {
+                    placementCell.textContent = placement;
+                }
+
+                total += placement + (Number.isNaN(killValue) ? 0 : killValue);
+            });
+
+            const totalCell = row.querySelector('.total-cell');
+            if (totalCell) {
+                totalCell.textContent = total;
+            }
+        };
+
+        const bindRowInputs = (container) => {
+            container.querySelectorAll('.js-rank-input, .js-kill-input').forEach((input) => {
+                if (input.dataset.bound === 'true') {
+                    return;
+                }
+
+                input.dataset.bound = 'true';
+                input.addEventListener('input', () => {
+                    const row = input.closest('tr[data-team-row]');
+                    if (row) {
+                        updateRowTotals(row);
+                    }
+                    queueSave();
+                });
+            });
+        };
+
+        const updateAllRows = () => {
+            table.querySelectorAll('tbody tr[data-team-row]').forEach(updateRowTotals);
+            updateRowNumbers();
+        };
+
+        const createGameHeader = (gameNo) => {
+            const th = document.createElement('th');
+            th.colSpan = 3;
+            th.className = 'text-center game-group';
+            th.dataset.gameGroup = String(gameNo);
+            th.textContent = `Game ${gameNo}`;
+            return th;
+        };
+
+        const createSubHeader = (gameNo, label, role) => {
+            const th = document.createElement('th');
+            th.className = 'text-center game-subhead';
+            th.dataset.gameCol = String(gameNo);
+            th.dataset.colRole = role;
+            th.textContent = label;
+            return th;
+        };
+
+        const appendGameColumns = (gameNo) => {
+            const totalHead = table.querySelector('.total-col');
+            const firstHeaderRow = table.querySelector('thead tr:first-child');
+            firstHeaderRow.insertBefore(createGameHeader(gameNo), totalHead);
+
+            subHeaderRow.appendChild(createSubHeader(gameNo, 'Rank', 'rank'));
+            subHeaderRow.appendChild(createSubHeader(gameNo, 'P.Rank', 'placement'));
+            subHeaderRow.appendChild(createSubHeader(gameNo, 'Kill', 'kill'));
+
+            table.querySelectorAll('tbody tr[data-team-row]').forEach((row) => {
+                const totalCell = row.querySelector('.total-cell');
+                const actionCell = row.querySelector('.action-col');
+                const teamId = row.dataset.teamId;
+
+                if (!teamId || !totalCell || !actionCell) {
+                    return;
+                }
+
+                const rankTd = document.createElement('td');
+                rankTd.className = 'game-cell';
+                rankTd.dataset.gameCol = String(gameNo);
+                rankTd.dataset.colRole = 'rank';
+                rankTd.innerHTML = `<input type="number" min="1" max="12" class="form-control form-control-sm text-center js-rank-input compact-input" name="scores[${teamId}][${gameNo}][rank_no]">`;
+
+                const placementTd = document.createElement('td');
+                placementTd.className = 'text-center placement-cell';
+                placementTd.dataset.gameCol = String(gameNo);
+                placementTd.dataset.colRole = 'placement';
+                placementTd.textContent = '0';
+
+                const killTd = document.createElement('td');
+                killTd.className = 'game-cell';
+                killTd.dataset.gameCol = String(gameNo);
+                killTd.dataset.colRole = 'kill';
+                killTd.innerHTML = `<input type="number" min="0" class="form-control form-control-sm text-center js-kill-input compact-input" name="scores[${teamId}][${gameNo}][kill_point]">`;
+
+                row.insertBefore(rankTd, totalCell);
+                row.insertBefore(placementTd, totalCell);
+                row.insertBefore(killTd, totalCell);
+                bindRowInputs(row);
+                updateRowTotals(row);
+            });
+        };
+
+        const removeGameColumns = (gameNo) => {
+            table.querySelector(`[data-game-group="${gameNo}"]`)?.remove();
+            table.querySelectorAll(`[data-game-col="${gameNo}"]`).forEach((el) => el.remove());
+            updateAllRows();
+        };
+
+        const saveNow = async () => {
+            if (!canManage || isSaving) {
+                return;
+            }
+
+            isSaving = true;
+            setStatus('Menyimpan...', 'saving');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new FormData(form),
+                });
+
+                const data = await response.json();
+                updateCsrf(data.csrfTokenName, data.csrfHash);
+
+                if (!response.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Gagal menyimpan perubahan.');
+                }
+
+                setStatus('Tersimpan otomatis.', 'saved');
+            } catch (error) {
+                setStatus(error.message || 'Gagal menyimpan.', 'error');
+            } finally {
+                isSaving = false;
+            }
+        };
+
+        const queueSave = () => {
+            if (!canManage) {
+                return;
+            }
+
+            clearTimeout(saveTimer);
+            setStatus('Perubahan belum disimpan...', 'dirty');
+            saveTimer = setTimeout(() => {
+                saveNow();
+            }, 650);
+        };
+
+        bindRowInputs(table);
+        updateAllRows();
+
+        form.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+
+            if (target.tagName === 'TEXTAREA') {
+                event.preventDefault();
+                target.blur();
+                return;
+            }
+
+            if (target.tagName === 'INPUT') {
+                event.preventDefault();
+                const focusables = Array.from(form.querySelectorAll('input, button, textarea, select'))
+                    .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('type') !== 'hidden');
+                const index = focusables.indexOf(target);
+                const next = focusables[index + 1];
+                if (next instanceof HTMLElement) {
+                    next.focus();
+                    if (typeof next.select === 'function') {
+                        next.select();
+                    }
+                } else {
+                    target.blur();
+                }
+            }
+        });
+
+        form.querySelectorAll('input[type="text"], input[type="number"]').forEach((input) => {
+            input.addEventListener('input', queueSave);
+            input.addEventListener('blur', queueSave);
+        });
+
+        if (canManage) {
+            addGameBtn?.addEventListener('click', () => {
+                const nextGameNo = parseInt(gameCountInput.value, 10) + 1;
+                gameCountInput.value = String(nextGameNo);
+                appendGameColumns(nextGameNo);
+                queueSave();
+            });
+
+            removeGameBtn?.addEventListener('click', () => {
+                const currentGameNo = parseInt(gameCountInput.value, 10);
+
+                if (currentGameNo <= 1) {
+                    window.alert('Minimal harus ada 1 game.');
+                    return;
+                }
+
+                gameCountInput.value = String(currentGameNo - 1);
+                removeGameColumns(currentGameNo);
+                queueSave();
+            });
+
+            table.querySelectorAll('.row-delete-team').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    if (!window.confirm('Hapus team ini?')) {
+                        return;
+                    }
+
+                    try {
+                        const tokenInput = form.querySelector('input[name="csrf_test_name"]');
+                        const payload = new FormData();
+                        if (tokenInput) {
+                            payload.append(tokenInput.name, tokenInput.value);
+                        }
+
+                        const response = await fetch(button.dataset.deleteUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: payload,
+                        });
+
+                        const data = await response.json();
+                        updateCsrf(data.csrfTokenName, data.csrfHash);
+
+                        if (!response.ok || data.status !== 'success') {
+                            throw new Error(data.message || 'Gagal menghapus team.');
+                        }
+
+                        button.closest('tr[data-team-row]')?.remove();
+                        updateAllRows();
+                        setStatus('Team dihapus.', 'saved');
+                    } catch (error) {
+                        setStatus(error.message || 'Gagal menghapus team.', 'error');
+                    }
+                });
+            });
+        }
+    })();
+</script>
+
+<!-- DEBUG-VIEW ENDED 2 APPPATH\Views\scores\_calculator.php -->
+    </div>
+
+    <div class="modal fade" id="statusTournamentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="http://localhost:8000/index.php/tournaments/update-status/1" method="post">
+                    <input type="hidden" name="csrf_test_name" value="a611dd869b116fb3924e3ad1aae4318e">                    <input type="hidden" name="redirect_to" value="http://localhost:8000/index.php/pots/2/scores">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5">Ubah Status Tournament</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Status saat ini</label>
+                        <select name="status" class="form-select" required>
+                                                            <option value="belum_mulai" selected>Belum Mulai</option>
+                                                            <option value="start" >Start</option>
+                                                            <option value="selesai" >Selesai</option>
+                                                    </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        (() => {
+            const storageKey = 'bgcalc-theme';
+            const body = document.body;
+            const button = document.getElementById('themeToggleBtn');
+
+            const applyTheme = (theme) => {
+                body.classList.toggle('dark-mode', theme === 'dark');
+                if (button) {
+                    button.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+                }
+            };
+
+            const savedTheme = localStorage.getItem(storageKey) || 'dark';
+            applyTheme(savedTheme);
+
+            button?.addEventListener('click', () => {
+                const nextTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+                localStorage.setItem(storageKey, nextTheme);
+                applyTheme(nextTheme);
+            });
+        })();
+    </script>
+</body>
+</html>
+
+<!-- DEBUG-VIEW ENDED 5 APPPATH\Views\layouts\main.php -->
+
+<!-- DEBUG-VIEW ENDED 6 APPPATH\Views\scores\index.php -->
+
