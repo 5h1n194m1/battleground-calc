@@ -3,6 +3,7 @@
 
     const qs = (selector, scope = document) => scope.querySelector(selector);
     const qsa = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+    const managerLookupCache = new Map();
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
         '&': '&amp;',
         '<': '&lt;',
@@ -73,6 +74,14 @@
         });
     };
 
+    const rememberScrollPosition = () => {
+        try {
+            sessionStorage.setItem('bgcalc-scroll-y', String(window.scrollY));
+        } catch (error) {
+            // ignore
+        }
+    };
+
     const getPlacement = (placementMap, rank) => {
         if (!Number.isInteger(rank)) {
             return 0;
@@ -109,6 +118,61 @@
 
     const updateAllRows = (table, placementMap) => {
         qsa('tbody tr[data-team-row]', table).forEach((row) => updateRowTotal(row, placementMap));
+    };
+
+    const getRowTotalValue = (row) => {
+        const totalText = (qs('.total-cell', row)?.textContent || '0').trim();
+        const total = Number.parseInt(totalText, 10);
+        return Number.isNaN(total) ? 0 : total;
+    };
+
+    const sortRowsByTotal = (table) => {
+        const tbody = qs('tbody', table);
+        if (!tbody) {
+            return;
+        }
+
+        const rows = qsa('tr[data-team-row]', tbody);
+        if (rows.length < 2) {
+            updateRowNumbers(table);
+            return;
+        }
+
+        rows.sort((left, right) => {
+            const totalDiff = getRowTotalValue(right) - getRowTotalValue(left);
+            if (totalDiff !== 0) {
+                return totalDiff;
+            }
+
+            const leftIsTemp = left.dataset.isTempTeam === '1' ? 1 : 0;
+            const rightIsTemp = right.dataset.isTempTeam === '1' ? 1 : 0;
+            if (leftIsTemp !== rightIsTemp) {
+                return leftIsTemp - rightIsTemp;
+            }
+
+            const leftName = (qs('.team-name-input', left)?.value || '').trim();
+            const rightName = (qs('.team-name-input', right)?.value || '').trim();
+            if (leftName && rightName) {
+                const nameDiff = leftName.localeCompare(rightName, undefined, { sensitivity: 'base' });
+                if (nameDiff !== 0) {
+                    return nameDiff;
+                }
+            }
+
+            return 0;
+        });
+
+        rows.forEach((row) => tbody.appendChild(row));
+        updateRowNumbers(table);
+    };
+
+    const updateRowNumbers = (table) => {
+        qsa('tbody tr[data-team-row]', table).forEach((row, index) => {
+            const numberCell = qs('.js-row-number', row) || qs('.score-no-col', row);
+            if (numberCell) {
+                numberCell.textContent = String(index + 1);
+            }
+        });
     };
 
     const updateCompactVars = (form) => {
@@ -234,6 +298,71 @@
         return td;
     };
 
+    const createTempTeamRow = (form, teamKey, rowNumber) => {
+        const gameCount = Number.parseInt(qs('.js-game-count', form)?.value || '1', 10);
+        const tr = document.createElement('tr');
+        tr.dataset.teamRow = '1';
+        tr.dataset.teamId = teamKey;
+        tr.dataset.potId = form.dataset.potId || '';
+        tr.dataset.searchLabel = '';
+        tr.dataset.searchPlayers = '';
+        tr.dataset.isTempTeam = '1';
+
+        const noCell = document.createElement('td');
+        noCell.className = 'text-center score-no-col js-row-number';
+        noCell.textContent = String(rowNumber);
+        tr.appendChild(noCell);
+
+        const teamCell = document.createElement('td');
+        teamCell.className = 'score-team-col team-cell';
+        const lookupId = `teamTableLookup-${form.dataset.potId || 'pot'}-${teamKey}`;
+        teamCell.innerHTML = `
+            <div class="team-cell-inner">
+                <div class="team-main-line">
+                    <div class="team-manager-combobox-shell team-table-combobox-shell">
+                        <input
+                            type="text"
+                            class="form-control form-control-sm fw-semibold team-name-input compact-input js-team-input js-table-team-name-input"
+                            name="team_names[${teamKey}]"
+                            value=""
+                            autocomplete="off"
+                            list="${lookupId}"
+                        >
+                        <datalist id="${lookupId}" class="js-table-team-datalist"></datalist>
+                    </div>
+                </div>
+            </div>
+        `;
+        tr.appendChild(teamCell);
+
+        for (let gameNo = 1; gameNo <= gameCount; gameNo++) {
+            tr.appendChild(createInputCell(teamKey, gameNo, 'rank'));
+            tr.appendChild(createInputCell(teamKey, gameNo, 'placement'));
+            tr.appendChild(createInputCell(teamKey, gameNo, 'kill'));
+        }
+
+        const qualifyCell = document.createElement('td');
+        qualifyCell.className = 'qualify-cell controller-only';
+        qualifyCell.innerHTML = `
+            <input type="checkbox" class="form-check-input js-advance-team" value="" disabled>
+        `;
+        tr.appendChild(qualifyCell);
+
+        const totalCell = document.createElement('td');
+        totalCell.className = 'score-total-cell total-cell';
+        totalCell.textContent = '0';
+        tr.appendChild(totalCell);
+
+        const actionCell = document.createElement('td');
+        actionCell.className = 'team-row-actions controller-only';
+        actionCell.innerHTML = `
+            <button type="button" class="btn btn-outline-secondary btn-sm toolbar-btn js-remove-temp-team">Batal</button>
+        `;
+        tr.appendChild(actionCell);
+
+        return tr;
+    };
+
     const buildPotLookupIndex = (potCard) => {
         const rows = qsa('tr[data-team-row]', potCard);
         return rows.map((row) => {
@@ -298,6 +427,83 @@
         });
     };
 
+    const hideLookupBox = (box) => {
+        if (!box) {
+            return;
+        }
+
+        box.hidden = true;
+        box.innerHTML = '';
+    };
+
+    const renderLookupBox = (box, items, emptyMessage = 'Tidak ada team yang cocok.') => {
+        if (!box) {
+            return;
+        }
+
+        if (!items.length) {
+            box.innerHTML = `<div class="team-manager-combobox-empty">${escapeHtml(emptyMessage)}</div>`;
+            box.hidden = false;
+            return;
+        }
+
+        box.innerHTML = items.map((team) => {
+            const members = (team.member_text || '').trim();
+            const meta = team.scope_label || 'Tanpa Pot';
+
+            return `
+                <button type="button" class="team-manager-combobox-item" data-team-id="${Number(team.id)}">
+                    <span class="team-manager-combobox-title">${escapeHtml(team.name || '-')}</span>
+                    <span class="team-manager-combobox-meta">${escapeHtml(meta)}</span>
+                    <span class="team-manager-combobox-members">${escapeHtml(members || 'Belum ada member')}</span>
+                </button>`;
+        }).join('');
+
+        box.hidden = false;
+    };
+
+    const bindLookupBoxSelection = (box, teams, handler) => {
+        if (!box) {
+            return;
+        }
+
+        qsa('.team-manager-combobox-item', box).forEach((button) => {
+            button.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+            });
+
+            button.addEventListener('click', async () => {
+                const team = teams.find((item) => Number(item.id) === Number(button.dataset.teamId || '0'));
+                if (!team) {
+                    return;
+                }
+
+                await handler(team);
+            });
+        });
+    };
+
+    const fetchLookupTeams = async (tournamentId, potId = 0, force = false) => {
+        const safeTournamentId = Number.parseInt(String(tournamentId || '0'), 10);
+        if (!safeTournamentId) {
+            return [];
+        }
+
+        const cacheKey = String(safeTournamentId);
+        if (!force && managerLookupCache.has(cacheKey)) {
+            return managerLookupCache.get(cacheKey) || [];
+        }
+
+        const params = new URLSearchParams();
+        params.set('tournament_id', String(safeTournamentId));
+        params.set('pot_id', String(Number.parseInt(String(potId || '0'), 10) || 0));
+
+        const payload = await request(`${app.baseUrl}teams/manager-data?${params.toString()}`, { method: 'GET' });
+        const lookupTeams = payload.lookupTeams || [];
+        managerLookupCache.set(cacheKey, lookupTeams);
+        return lookupTeams;
+    };
+
     const bindLookupToolbars = () => {
         qsa('.pot-module-card').forEach((potCard) => {
             const teamInput =
@@ -359,343 +565,668 @@
         });
     };
 
-const bindTeamManagerWorkspace = () => {
-    qsa('.js-team-manager-workspace').forEach((workspace) => {
-        if (workspace.dataset.managerBound === '1') {
-            return;
-        }
 
-        workspace.dataset.managerBound = '1';
-
-        const endpoint = workspace.dataset.endpoint || '';
-        const createUrl = workspace.dataset.createUrl || '';
-        const updateUrlBase = workspace.dataset.updateUrlBase || '';
-        const deleteUrlBase = workspace.dataset.deleteUrlBase || '';
-        const canManage = workspace.dataset.canManage === '1';
-        const managerContext = workspace.dataset.context || 'import';
-        const currentTournamentId = Number.parseInt(workspace.dataset.currentTournamentId || '0', 10);
-        const currentPotId = Number.parseInt(workspace.dataset.currentPotId || '0', 10);
-
-        const tournamentSelect = qs('.js-manager-tournament', workspace);
-        const potSelect = qs('.js-manager-pot', workspace);
-        const listEl = qs('.js-manager-list', workspace);
-        const countEl = qs('.js-manager-count', workspace);
-        const currentScopeEl = qs('.js-manager-current-scope', workspace);
-        const teamIdInput = qs('.js-manager-team-id', workspace);
-        const teamNameInput = qs('.js-manager-team-name', workspace);
-        const memberTextInput = qs('.js-manager-member-text', workspace);
-        const searchInput = qs('.js-manager-search', workspace);
-        const resetButton = qs('.js-manager-reset', workspace);
-        const createButton = qs('.js-manager-create', workspace);
-        const updateButton = qs('.js-manager-update', workspace);
-        const deleteButton = qs('.js-manager-delete', workspace);
-
-        const state = {
-            teams: [],
-            activeTeamId: 0,
-            query: '',
-        };
-
-        const setLoading = (loading) => {
-            workspace.dataset.loading = loading ? '1' : '0';
-
-            [tournamentSelect, potSelect, teamNameInput, memberTextInput, searchInput, createButton, updateButton, deleteButton, resetButton]
-                .filter(Boolean)
-                .forEach((el) => {
-                    if (!canManage && (el === teamNameInput || el === memberTextInput || el === createButton || el === updateButton || el === deleteButton || el === resetButton)) {
-                        return;
-                    }
-
-                    if (loading) {
-                        el.setAttribute('disabled', 'disabled');
-                    } else if (canManage || (el !== teamNameInput && el !== memberTextInput && el !== createButton && el !== updateButton && el !== deleteButton && el !== resetButton)) {
-                        el.removeAttribute('disabled');
-                    }
-                });
-        };
-
-        const fillPotOptions = (pots, selectedPotId) => {
-            if (!potSelect) {
+    const bindTeamManagerWorkspace = () => {
+        qsa('.js-team-manager-workspace').forEach((workspace) => {
+            if (workspace.dataset.managerBound === '1') {
                 return;
             }
 
-            potSelect.innerHTML = '<option value="">Pilih pot</option>';
-            pots.forEach((pot) => {
-                const option = document.createElement('option');
-                option.value = String(pot.id);
-                option.textContent = pot.name;
-                option.selected = Number(pot.id) === Number(selectedPotId);
-                potSelect.appendChild(option);
-            });
-        };
+            workspace.dataset.managerBound = '1';
 
-        const getFilteredTeams = () => {
-            const keyword = (state.query || '').trim().toLowerCase();
-            if (!keyword) {
-                return state.teams;
-            }
+            const endpoint = workspace.dataset.endpoint || '';
+            const createUrl = workspace.dataset.createUrl || '';
+            const updateUrlBase = workspace.dataset.updateUrlBase || '';
+            const deleteUrlBase = workspace.dataset.deleteUrlBase || '';
+            const detachUrlBase = workspace.dataset.detachUrlBase || '';
+            const canManage = workspace.dataset.canManage === '1';
+            const allowUnassigned = workspace.dataset.allowUnassigned === '1';
+            const managerContext = workspace.dataset.context || 'import';
+            const currentTournamentId = Number.parseInt(workspace.dataset.currentTournamentId || '0', 10);
+            const currentPotId = Number.parseInt(workspace.dataset.currentPotId || '0', 10);
 
-            return state.teams.filter((team) => {
-                const haystack = [team.name, team.member_text, (team.members || []).join(', ')].join(' ').toLowerCase();
-                return haystack.includes(keyword);
-            });
-        };
+            const tournamentSelect = qs('.js-manager-tournament', workspace);
+            const potSelect = qs('.js-manager-pot', workspace);
+            const listEl = qs('.js-manager-list', workspace);
+            const countEl = qs('.js-manager-count', workspace);
+            const currentScopeEl = qs('.js-manager-current-scope', workspace);
+            const statusEl = qs('.js-manager-status', workspace);
+            const modeEl = qs('.js-manager-mode', workspace);
+            const teamIdInput = qs('.js-manager-team-id', workspace);
+            const teamNameInput = qs('.js-manager-team-name', workspace);
+            const memberTextInput = qs('.js-manager-member-text', workspace);
+            const searchInput = qs('.js-manager-search', workspace);
+            const searchCombobox = qs('.js-manager-search-combobox', workspace);
+            const nameCombobox = qs('.js-manager-name-combobox', workspace);
+            const resetButtons = qsa('.js-manager-reset', workspace);
+            const submitButton = qs('.js-manager-submit', workspace);
+            const deleteButton = qs('.js-manager-delete', workspace);
 
-        const resetEditor = () => {
-            state.activeTeamId = 0;
-            if (teamIdInput) teamIdInput.value = '';
-            if (teamNameInput) teamNameInput.value = '';
-            if (memberTextInput) memberTextInput.value = '';
-            qsa('.team-manager-list-item', workspace).forEach((item) => {
-                item.classList.toggle('is-active', false);
-            });
-        };
+            const state = {
+                teams: [],
+                lookupTeams: [],
+                activeTeamId: 0,
+                query: '',
+            };
 
-        const fillEditor = (team) => {
-            if (!team) {
-                resetEditor();
-                return;
-            }
-
-            state.activeTeamId = Number(team.id);
-            if (teamIdInput) teamIdInput.value = String(team.id);
-            if (teamNameInput) teamNameInput.value = team.name || '';
-            if (memberTextInput) memberTextInput.value = team.member_text || '';
-
-            qsa('.team-manager-list-item', workspace).forEach((item) => {
-                item.classList.toggle('is-active', Number(item.dataset.teamId || '0') === Number(team.id));
-            });
-        };
-
-        const renderList = () => {
-            if (!listEl) {
-                return;
-            }
-
-            const filteredTeams = getFilteredTeams();
-
-            if (countEl) {
-                countEl.textContent = state.teams.length === filteredTeams.length
-                    ? state.teams.length + ' team'
-                    : filteredTeams.length + ' / ' + state.teams.length + ' team';
-            }
-
-            if (currentScopeEl) {
-                const isCurrentScope = Number.parseInt(tournamentSelect?.value || '0', 10) === currentTournamentId
-                    && Number.parseInt(potSelect?.value || '0', 10) === currentPotId;
-                currentScopeEl.textContent = isCurrentScope ? 'Pot yang sedang ditampilkan' : 'Pot lain / mode global';
-            }
-
-            if (!filteredTeams.length) {
-                listEl.innerHTML = '<div class="team-manager-empty">Tidak ada team yang cocok di pot ini.</div>';
-                if (!state.teams.length) {
-                    resetEditor();
-                }
-                return;
-            }
-
-            listEl.innerHTML = filteredTeams.map((team) => {
-                const preview = team.member_text || 'Belum ada member';
-
-                return `
-                    <button type="button" class="team-manager-list-item${Number(team.id) === Number(state.activeTeamId) ? ' is-active' : ''}" data-team-id="${team.id}">
-                        <span class="team-manager-list-top">
-                            <span class="team-manager-list-name">${escapeHtml(team.name || '-')}</span>
-                            <span class="team-manager-list-order">#${Number(team.sort_order || 0)}</span>
-                        </span>
-                        <span class="team-manager-list-meta">
-                            <span>${Number(team.member_count || 0)} member</span>
-                            <span>${Number(team.games_played || 0)} game</span>
-                            <span>${Number(team.total_score || 0)} pts</span>
-                        </span>
-                        <span class="team-manager-list-preview">${escapeHtml(preview)}</span>
-                    </button>
-                `;
-            }).join('');
-
-            qsa('.team-manager-list-item', listEl).forEach((button) => {
-                button.addEventListener('click', () => {
-                    const team = state.teams.find((item) => Number(item.id) === Number(button.dataset.teamId || '0'));
-                    fillEditor(team || null);
-                });
-            });
-        };
-
-        const syncScoreViews = () => {
-            bindLookupToolbars();
-            if (typeof window.initScoreWorkspace === 'function') {
-                window.initScoreWorkspace();
-            }
-        };
-
-        const loadData = async ({ keepSelection = false } = {}) => {
-            if (!endpoint) {
-                return;
-            }
-
-            const previousTeamId = keepSelection ? state.activeTeamId : 0;
-            const params = new URLSearchParams();
-
-            if (tournamentSelect?.value) {
-                params.set('tournament_id', tournamentSelect.value);
-            }
-
-            if (potSelect?.value) {
-                params.set('pot_id', potSelect.value);
-            }
-
-            setLoading(true);
-
-            try {
-                const payload = await request(endpoint + '?' + params.toString(), {
-                    method: 'GET',
-                });
-
-                updateCsrf(payload);
-
-                if (tournamentSelect && payload.selectedTournamentId) {
-                    tournamentSelect.value = String(payload.selectedTournamentId);
-                }
-
-                fillPotOptions(payload.pots || [], payload.selectedPotId || 0);
-                state.teams = payload.teams || [];
-                state.activeTeamId = previousTeamId;
-                renderList();
-
-                const selectedTeam = state.teams.find((team) => Number(team.id) === Number(previousTeamId));
-                fillEditor(selectedTeam || null);
-            } catch (error) {
-                if (listEl) {
-                    listEl.innerHTML = '<div class="team-manager-empty">Gagal memuat team manager.</div>';
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const submitManagerAction = async (mode) => {
-            const selectedTournamentId = Number.parseInt(tournamentSelect?.value || '', 10);
-            const potId = Number.parseInt(potSelect?.value || '', 10);
-            const teamId = Number.parseInt(teamIdInput?.value || '', 10);
-            const teamName = (teamNameInput?.value || '').trim();
-            const memberText = (memberTextInput?.value || '').trim();
-
-            if (!potId) {
-                showFlash('Pilih pot terlebih dahulu.', 'warning');
-                return;
-            }
-
-            if ((mode === 'update' || mode === 'delete') && !teamId) {
-                showFlash('Pilih team dari daftar terlebih dahulu.', 'warning');
-                return;
-            }
-
-            if ((mode === 'create' || mode === 'update') && !teamName) {
-                showFlash('Nama team wajib diisi.', 'warning');
-                teamNameInput?.focus();
-                return;
-            }
-
-            let url = createUrl;
-            if (mode === 'update') {
-                url = updateUrlBase.replace(/\/$/, '') + '/' + teamId;
-            } else if (mode === 'delete') {
-                url = deleteUrlBase.replace(/\/$/, '') + '/' + teamId;
-            }
-
-            const formData = new FormData();
-            ensureFormDataCsrf(formData);
-            formData.append('pot_id', String(potId));
-            formData.append('name', teamName);
-            formData.append('member_text', memberText);
-            formData.append('redirect_to', window.location.href);
-
-            setLoading(true);
-
-            try {
-                await request(url, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                showFlash(
-                    mode === 'create'
-                        ? 'Team berhasil ditambahkan.'
-                        : mode === 'update'
-                            ? 'Team berhasil diperbarui.'
-                            : 'Team berhasil dihapus.',
-                    'success'
-                );
-
-                const touchesCurrentScorePage = managerContext === 'score'
-                    && selectedTournamentId === currentTournamentId
-                    && potId === currentPotId;
-
-                if (touchesCurrentScorePage) {
-                    window.setTimeout(() => {
-                        window.location.reload();
-                    }, 120);
+            const setStatus = (message, status = 'idle') => {
+                if (!statusEl) {
                     return;
                 }
 
-                resetEditor();
+                statusEl.dataset.state = status;
+                statusEl.textContent = message || '';
+            };
+
+            const syncEditorState = () => {
+                const isEditing = state.activeTeamId > 0;
+                const isLoading = workspace.dataset.loading === '1';
+
+                if (modeEl) {
+                    modeEl.textContent = isEditing ? 'Mode edit team terpilih' : 'Mode tambah team baru';
+                }
+
+                if (submitButton) {
+                    submitButton.textContent = isEditing ? 'Simpan Perubahan' : 'Tambah Team';
+                    submitButton.disabled = !canManage || isLoading;
+                }
+
+                if (deleteButton) {
+                    deleteButton.disabled = !canManage || !isEditing || isLoading;
+                }
+            };
+
+            const setLoading = (loading) => {
+                workspace.dataset.loading = loading ? '1' : '0';
+
+                [tournamentSelect, potSelect, teamNameInput, memberTextInput, searchInput, ...resetButtons]
+                    .filter(Boolean)
+                    .forEach((el) => {
+                        const isEditorControl = el === teamNameInput || el === memberTextInput || resetButtons.includes(el);
+                        if (!canManage && isEditorControl) {
+                            return;
+                        }
+
+                        if (loading) {
+                            el.setAttribute('disabled', 'disabled');
+                        } else if (canManage || !isEditorControl) {
+                            el.removeAttribute('disabled');
+                        }
+                    });
+
+                syncEditorState();
+            };
+
+            const fillPotOptions = (pots, selectedPotId) => {
+                if (!potSelect) {
+                    return;
+                }
+
+                potSelect.innerHTML = allowUnassigned
+                    ? '<option value="">Tanpa Pot (database only)</option>'
+                    : '<option value="">Pilih pot</option>';
+                pots.forEach((pot) => {
+                    const option = document.createElement('option');
+                    option.value = String(pot.id);
+                    option.textContent = pot.name;
+                    option.selected = Number(pot.id) === Number(selectedPotId);
+                    potSelect.appendChild(option);
+                });
+            };
+
+            const hideCombobox = (box) => {
+                if (!box) {
+                    return;
+                }
+
+                box.hidden = true;
+                box.innerHTML = '';
+            };
+
+            const getLookupMatches = (keyword, mode = 'all') => {
+                const normalized = (keyword || '').trim().toLowerCase();
+                if (!normalized) {
+                    return [];
+                }
+
+                return state.lookupTeams
+                    .filter((team) => {
+                        const searchText = (team.search_text || '').toLowerCase();
+                        if (!searchText.includes(normalized)) {
+                            return false;
+                        }
+
+                        if (mode === 'name') {
+                            return (team.name || '').toLowerCase().includes(normalized);
+                        }
+
+                        return true;
+                    })
+                    .slice(0, 8);
+            };
+
+            const renderCombobox = (box, items, emptyMessage = 'Tidak ada team yang cocok.') => {
+                if (!box) {
+                    return;
+                }
+
+                if (!items.length) {
+                    box.innerHTML = `<div class="team-manager-combobox-empty">${escapeHtml(emptyMessage)}</div>`;
+                    box.hidden = false;
+                    return;
+                }
+
+                box.innerHTML = items.map((team) => {
+                    const members = (team.member_text || '').trim();
+                    const meta = team.scope_label || 'Tanpa Pot';
+
+                    return `
+                        <button type="button" class="team-manager-combobox-item" data-team-id="${Number(team.id)}">
+                            <span class="team-manager-combobox-title">${escapeHtml(team.name || '-')}</span>
+                            <span class="team-manager-combobox-meta">${escapeHtml(meta)}</span>
+                            <span class="team-manager-combobox-members">${escapeHtml(members || 'Belum ada member')}</span>
+                        </button>`;
+                }).join('');
+
+                box.hidden = false;
+            };
+
+            const bindComboboxSelection = (box, handler) => {
+                if (!box) {
+                    return;
+                }
+
+                qsa('.team-manager-combobox-item', box).forEach((button) => {
+                    button.addEventListener('mousedown', (event) => {
+                        event.preventDefault();
+                    });
+
+                    button.addEventListener('click', async () => {
+                        const team = state.lookupTeams.find((item) => Number(item.id) === Number(button.dataset.teamId || '0'));
+                        if (!team) {
+                            return;
+                        }
+
+                        await handler(team);
+                    });
+                });
+            };
+
+            const getFilteredTeams = () => {
+                const keyword = (state.query || '').trim().toLowerCase();
+                if (!keyword) {
+                    return state.teams;
+                }
+
+                return state.teams.filter((team) => {
+                    const haystack = [team.name, team.member_text, (team.members || []).join(', ')].join(' ').toLowerCase();
+                    return haystack.includes(keyword);
+                });
+            };
+
+            const clearSelectionStyles = () => {
+                qsa('.team-manager-list-item', workspace).forEach((item) => item.classList.remove('is-active'));
+            };
+
+            const resetEditor = ({ keepStatus = false } = {}) => {
+                state.activeTeamId = 0;
+
+                if (teamIdInput) teamIdInput.value = '';
+                if (teamNameInput) teamNameInput.value = '';
+                if (memberTextInput) memberTextInput.value = '';
+
+                clearSelectionStyles();
+                syncEditorState();
+
+                if (!keepStatus) {
+                    if (allowUnassigned && (potSelect?.value || '') === '') {
+                        setStatus('Mode semua team tournament aktif. Anda bisa tambah team tanpa pot atau kelola semua team yang sudah ada.', 'idle');
+                    } else {
+                        setStatus(potSelect?.value ? 'Siap tambah team baru di pot ini.' : 'Pilih pot untuk mulai.', 'idle');
+                    }
+                }
+            };
+
+            const fillEditor = (team) => {
+                if (!team) {
+                    resetEditor();
+                    return;
+                }
+
+                state.activeTeamId = Number(team.id);
+
+                if (teamIdInput) teamIdInput.value = String(team.id);
+                if (teamNameInput) teamNameInput.value = team.name || '';
+                if (memberTextInput) memberTextInput.value = team.member_text || '';
+
+                qsa('.team-manager-list-item', workspace).forEach((item) => {
+                    item.classList.toggle('is-active', Number(item.dataset.teamId || '0') === Number(team.id));
+                });
+
+                syncEditorState();
+                setStatus(`Mode edit aktif untuk ${team.name || 'team terpilih'}.`, 'info');
+            };
+
+            const renderList = () => {
+                if (!listEl) {
+                    return;
+                }
+
+                const filteredTeams = getFilteredTeams();
+
+                if (countEl) {
+                    countEl.textContent = state.teams.length === filteredTeams.length ? `${state.teams.length} team` : `${filteredTeams.length} / ${state.teams.length} team`;
+                }
+
+                if (currentScopeEl) {
+                    const potValue = (potSelect?.value || '').trim();
+                    if (allowUnassigned && potValue === '') {
+                        currentScopeEl.textContent = 'Semua team tournament / database only';
+                    } else {
+                        const isCurrentScope = Number.parseInt(tournamentSelect?.value || '0', 10) === currentTournamentId && Number.parseInt(potValue || '0', 10) === currentPotId;
+                        currentScopeEl.textContent = isCurrentScope ? 'Pot yang sedang ditampilkan' : 'Pot lain / mode global';
+                    }
+                }
+
+                if (!filteredTeams.length) {
+                    const emptyMessage = state.teams.length
+                        ? 'Tidak ada team yang cocok dengan pencarian.'
+                        : (allowUnassigned && (potSelect?.value || '') === '')
+                            ? 'Belum ada team dalam tournament ini.'
+                            : 'Belum ada team di pot ini.';
+                    listEl.innerHTML = `<div class="team-manager-empty">${emptyMessage}</div>`;
+                    if (!state.teams.length) {
+                        clearSelectionStyles();
+                    }
+                    return;
+                }
+
+                listEl.innerHTML = filteredTeams.map((team) => {
+                    const preview = team.member_text || 'Belum ada member';
+                    const scopeLabel = (team.scope_label || '').trim();
+
+                    return `
+                        <button type="button" class="team-manager-list-item${Number(team.id) === Number(state.activeTeamId) ? ' is-active' : ''}" data-team-id="${team.id}">
+                            <span class="team-manager-list-top">
+                                <span class="team-manager-list-name">${escapeHtml(team.name || '-')}</span>
+                                <span class="team-manager-list-order">#${Number(team.sort_order || 0)}</span>
+                            </span>
+                            <span class="team-manager-list-meta">
+                                <span>${escapeHtml(scopeLabel || 'Tanpa Pot')}</span>
+                                <span>${Number(team.member_count || 0)} member</span>
+                                <span>${Number(team.games_played || 0)} game</span>
+                                <span>${Number(team.total_score || 0)} pts</span>
+                            </span>
+                            <span class="team-manager-list-preview">${escapeHtml(preview)}</span>
+                        </button>`;
+                }).join('');
+
+                qsa('.team-manager-list-item', listEl).forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const team = state.teams.find((item) => Number(item.id) === Number(button.dataset.teamId || '0'));
+                        fillEditor(team || null);
+                    });
+                });
+            };
+
+            const attachLookupTeamToCurrentPot = async (team) => {
+                const rawPotValue = (potSelect?.value || '').trim();
+                const potId = Number.parseInt(rawPotValue || '0', 10);
+                if (!potId) {
+                    fillEditor(team);
+                    setStatus('Team dipilih. Pilih pot jika ingin langsung memasukkannya ke tabel team.', 'info');
+                    return;
+                }
+
+                const formData = new FormData();
+                ensureFormDataCsrf(formData);
+                formData.append('pot_id', String(potId));
+                formData.append('name', team.name || '');
+                formData.append('member_text', team.member_text || '');
+                formData.append('redirect_to', window.location.href);
+                formData.append('manager_context', managerContext);
+
+                setLoading(true);
+                setStatus(`Memasukkan ${team.name || 'team'} ke pot aktif...`, 'pending');
+
+                try {
+                    const payload = await request(updateUrlBase.replace(/\/$/, '') + '/' + team.id, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const touchesCurrentScorePage = managerContext === 'score' && potId === currentPotId;
+                    if (touchesCurrentScorePage) {
+                        rememberScrollPosition();
+                        setStatus(payload?.message || 'Team berhasil dimasukkan ke pot aktif.', 'success');
+                        window.setTimeout(() => {
+                            window.location.reload();
+                        }, 120);
+                        return;
+                    }
+
+                    await loadData({
+                        keepSelection: true,
+                        preferredTeamId: Number(team.id),
+                    });
+
+                    setStatus(payload?.message || 'Team berhasil dimasukkan ke pot aktif.', 'success');
+                    syncScoreViews();
+                } catch (error) {
+                    setStatus(error.message || 'Gagal memasukkan team ke pot aktif.', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const applyLookupTeam = async (team, source = 'search') => {
+                hideCombobox(searchCombobox);
+                hideCombobox(nameCombobox);
+
+                if (searchInput && source === 'search') {
+                    searchInput.value = team.name || '';
+                }
+
+                if (teamNameInput && source === 'name') {
+                    teamNameInput.value = team.name || '';
+                }
+
+                const rawPotValue = (potSelect?.value || '').trim();
+                const currentSelectedPotId = Number.parseInt(rawPotValue || '0', 10);
+                const currentTournamentValue = Number.parseInt(tournamentSelect?.value || '0', 10);
+                const teamPotId = team.pot_id === null ? null : Number(team.pot_id);
+                const teamTournamentId = team.tournament_id === null ? null : Number(team.tournament_id);
+                const isUnassignedTeam = teamPotId === null;
+                const isCurrentScope = allowUnassigned && rawPotValue === ''
+                    ? isUnassignedTeam
+                    : teamPotId !== null && currentSelectedPotId === teamPotId;
+
+                if (isCurrentScope) {
+                    const currentTeam = state.teams.find((item) => Number(item.id) === Number(team.id));
+                    fillEditor(currentTeam || team);
+                    setStatus(`Team ${team.name || ''} ditemukan di scope ini.`, 'info');
+                    return;
+                }
+
+                if (isUnassignedTeam && currentSelectedPotId > 0 && canManage) {
+                    await attachLookupTeamToCurrentPot(team);
+                    return;
+                }
+
+                if (teamTournamentId !== null && tournamentSelect && currentTournamentValue !== teamTournamentId) {
+                    tournamentSelect.value = String(teamTournamentId);
+                }
+
+                if (teamPotId !== null && potSelect) {
+                    potSelect.value = String(teamPotId);
+                    await loadData({
+                        keepSelection: true,
+                        preferredTeamId: Number(team.id),
+                    });
+                    setStatus(`Team ${team.name || ''} ditemukan di pot ${team.scope_label || 'lain'}.`, 'info');
+                    return;
+                }
+
+                fillEditor(team);
+                setStatus(`Team ${team.name || ''} dipilih dari database.`, 'info');
+            };
+
+            const syncScoreViews = () => {
+                bindLookupToolbars();
+                if (typeof window.initScoreWorkspace === 'function') {
+                    window.initScoreWorkspace();
+                }
+            };
+
+            const loadData = async ({ keepSelection = false, preferredTeamId = 0 } = {}) => {
+                if (!endpoint) {
+                    return;
+                }
+
+                const previousTeamId = preferredTeamId || (keepSelection ? state.activeTeamId : 0);
+                const params = new URLSearchParams();
+
+                if (tournamentSelect?.value) params.set('tournament_id', tournamentSelect.value);
+                if (potSelect) params.set('pot_id', potSelect.value || '');
+                if (allowUnassigned && (potSelect?.value || '') === '') params.set('pot_scope', 'unassigned');
+
+                setLoading(true);
+                setStatus('Memuat data team...', 'pending');
+
+                try {
+                    const payload = await request(endpoint + '?' + params.toString(), { method: 'GET' });
+
+                    updateCsrf(payload);
+
+                    if (tournamentSelect && payload.selectedTournamentId) {
+                        tournamentSelect.value = String(payload.selectedTournamentId);
+                    }
+
+                    fillPotOptions(payload.pots || [], payload.selectedPotId || 0);
+
+                    if (potSelect && payload.selectedPotId) {
+                        potSelect.value = String(payload.selectedPotId);
+                    }
+
+                    state.teams = payload.teams || [];
+                    state.lookupTeams = payload.lookupTeams || [];
+                    renderList();
+
+                    const selectedTeam = state.teams.find((team) => Number(team.id) === Number(previousTeamId));
+                    if (selectedTeam) {
+                        fillEditor(selectedTeam);
+                    } else {
+                        resetEditor({ keepStatus: true });
+                    }
+
+                    if (allowUnassigned && (potSelect?.value || '') === '') {
+                        setStatus(
+                            state.teams.length === 0
+                                ? 'Belum ada team dalam tournament ini. Silakan tambah team baru.'
+                                : `Memuat ${state.teams.length} team dari semua pot dan database tournament ini.`,
+                            'idle'
+                        );
+                    } else if (!potSelect?.value) {
+                        setStatus('Pilih pot untuk mulai.', 'idle');
+                    } else if (state.teams.length === 0) {
+                        setStatus('Belum ada team di pot ini. Silakan tambah team baru.', 'idle');
+                    } else if (!selectedTeam) {
+                        setStatus(`Memuat ${state.teams.length} team di pot ini. Pilih satu untuk edit atau tambah team baru.`, 'idle');
+                    }
+                } catch (error) {
+                    state.teams = [];
+                    state.lookupTeams = [];
+                    if (listEl) {
+                        listEl.innerHTML = '<div class="team-manager-empty">Gagal memuat team manager.</div>';
+                    }
+                    resetEditor({ keepStatus: true });
+                    setStatus(error.message || 'Gagal memuat team manager.', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const submitManagerAction = async (action) => {
+                const selectedTournamentId = Number.parseInt(tournamentSelect?.value || '0', 10);
+                const rawPotValue = (potSelect?.value || '').trim();
+                const potId = Number.parseInt(rawPotValue || '0', 10);
+                const teamId = Number.parseInt(teamIdInput?.value || '0', 10);
+                const teamName = (teamNameInput?.value || '').trim();
+                const memberText = (memberTextInput?.value || '').trim();
+                const hasPot = rawPotValue !== '' && !Number.isNaN(potId) && potId > 0;
+
+                if (!allowUnassigned && !hasPot) {
+                    setStatus('Pilih pot terlebih dahulu.', 'error');
+                    potSelect?.focus();
+                    return;
+                }
+
+                if (action === 'delete' && !teamId) {
+                    setStatus('Pilih team dari daftar terlebih dahulu.', 'error');
+                    return;
+                }
+
+                let url = createUrl;
+                if (action === 'update') {
+                    url = updateUrlBase.replace(/\/$/, '') + '/' + teamId;
+                } else if (action === 'delete') {
+                    const deleteBase = managerContext === 'score' ? (detachUrlBase || deleteUrlBase) : deleteUrlBase;
+                    url = deleteBase.replace(/\/$/, '') + '/' + teamId;
+                }
+
+                const formData = new FormData();
+                ensureFormDataCsrf(formData);
+                formData.append('pot_id', hasPot ? String(potId) : '');
+                formData.append('name', teamName);
+                formData.append('member_text', memberText);
+                formData.append('redirect_to', window.location.href);
+                formData.append('manager_context', managerContext);
+
+                setLoading(true);
+                setStatus(
+                    action === 'delete'
+                        ? 'Menghapus team...'
+                        : action === 'update'
+                            ? 'Menyimpan perubahan team...'
+                            : 'Menambahkan team...',
+                    'pending'
+                );
+
+                try {
+                    const payload = await request(url, { method: 'POST', body: formData });
+                    const successMessage = payload?.message || (action === 'delete' ? 'Team berhasil dihapus.' : action === 'update' ? 'Team berhasil diperbarui.' : 'Team berhasil ditambahkan.');
+
+                    const touchesCurrentScorePage = managerContext === 'score' && hasPot && selectedTournamentId === currentTournamentId && potId === currentPotId;
+                    if (touchesCurrentScorePage) {
+                        rememberScrollPosition();
+                        setStatus(successMessage, 'success');
+                        window.setTimeout(() => {
+                            window.location.reload();
+                        }, 120);
+                        return;
+                    }
+
+                    const nextTeamId = action === 'delete' ? 0 : Number(payload?.teamId || teamId || 0);
+                    if (action === 'delete') {
+                        resetEditor({ keepStatus: true });
+                    }
+
+                    await loadData({
+                        keepSelection: action !== 'delete',
+                        preferredTeamId: nextTeamId,
+                    });
+
+                    setStatus(successMessage, 'success');
+                    syncScoreViews();
+                } catch (error) {
+                    setStatus(error.message || 'Gagal memproses team manager.', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            tournamentSelect?.addEventListener('change', async () => {
+                state.query = '';
+                if (searchInput) searchInput.value = '';
+                resetEditor({ keepStatus: true });
+                if (potSelect) potSelect.value = '';
                 await loadData();
-                syncScoreViews();
-            } catch (error) {
-                showFlash(error.message || 'Gagal memproses team manager.', 'error');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        tournamentSelect?.addEventListener('change', async () => {
-            resetEditor();
-            if (potSelect) {
-                potSelect.value = '';
-            }
-            await loadData();
-        });
-
-        potSelect?.addEventListener('change', async () => {
-            resetEditor();
-            await loadData();
-        });
-
-        searchInput?.addEventListener('input', () => {
-            state.query = searchInput.value || '';
-            renderList();
-        });
-
-        resetButton?.addEventListener('click', () => {
-            resetEditor();
-            teamNameInput?.focus();
-        });
-
-        createButton?.addEventListener('click', async () => {
-            await submitManagerAction('create');
-        });
-
-        updateButton?.addEventListener('click', async () => {
-            await submitManagerAction('update');
-        });
-
-        deleteButton?.addEventListener('click', async () => {
-            const ok = await openDeleteConfirmPopup({
-                title: 'Hapus Team',
-                message: 'Yakin ingin menghapus team ini beserta score yang terkait?',
-                submitText: 'Hapus',
             });
 
-            if (!ok) {
-                return;
-            }
+            potSelect?.addEventListener('change', async () => {
+                state.query = '';
+                if (searchInput) searchInput.value = '';
+                resetEditor({ keepStatus: true });
+                await loadData();
+            });
 
-            await submitManagerAction('delete');
+            searchInput?.addEventListener('input', () => {
+                state.query = searchInput.value || '';
+                renderList();
+                if (!String(searchInput.value || '').trim()) {
+                    hideCombobox(searchCombobox);
+                    return;
+                }
+
+                renderCombobox(searchCombobox, getLookupMatches(searchInput.value || '', 'all'));
+                bindComboboxSelection(searchCombobox, async (team) => {
+                    await applyLookupTeam(team, 'search');
+                });
+            });
+
+            searchInput?.addEventListener('focus', () => {
+                const matches = getLookupMatches(searchInput.value || '', 'all');
+                if (matches.length) {
+                    renderCombobox(searchCombobox, matches);
+                    bindComboboxSelection(searchCombobox, async (team) => {
+                        await applyLookupTeam(team, 'search');
+                    });
+                }
+            });
+
+            searchInput?.addEventListener('blur', () => {
+                window.setTimeout(() => hideCombobox(searchCombobox), 120);
+            });
+
+            teamNameInput?.addEventListener('input', () => {
+                const keyword = teamNameInput.value || '';
+                if (!keyword.trim()) {
+                    hideCombobox(nameCombobox);
+                    return;
+                }
+
+                renderCombobox(nameCombobox, getLookupMatches(keyword, 'name'));
+                bindComboboxSelection(nameCombobox, async (team) => {
+                    await applyLookupTeam(team, 'name');
+                });
+            });
+
+            teamNameInput?.addEventListener('focus', () => {
+                const matches = getLookupMatches(teamNameInput.value || '', 'name');
+                if (matches.length) {
+                    renderCombobox(nameCombobox, matches);
+                    bindComboboxSelection(nameCombobox, async (team) => {
+                        await applyLookupTeam(team, 'name');
+                    });
+                }
+            });
+
+            teamNameInput?.addEventListener('blur', () => {
+                window.setTimeout(() => hideCombobox(nameCombobox), 120);
+            });
+
+            resetButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    resetEditor();
+                    hideCombobox(searchCombobox);
+                    hideCombobox(nameCombobox);
+                    teamNameInput?.focus();
+                });
+            });
+
+            submitButton?.addEventListener('click', async () => {
+                await submitManagerAction(state.activeTeamId > 0 ? 'update' : 'create');
+            });
+
+            deleteButton?.addEventListener('click', async () => {
+                const ok = await openDeleteConfirmPopup({
+                    title: managerContext === 'score' ? 'Lepas Dari Pot' : 'Hapus Team',
+                    message: managerContext === 'score'
+                        ? 'Yakin ingin melepas team ini dari pot dan menghapus score terkait? Data team tetap tersimpan di database.'
+                        : 'Yakin ingin menghapus team ini beserta score yang terkait?',
+                    submitText: managerContext === 'score' ? 'Lepas' : 'Hapus',
+                });
+
+                if (!ok) {
+                    return;
+                }
+
+                await submitManagerAction('delete');
+            });
+
+            loadData();
         });
-
-        loadData();
-    });
-};
+    };
 
     const bindQuickAddTeamForms = () => {
         qsa('form[action*="teams/store"]').forEach((form) => {
@@ -743,6 +1274,55 @@ const bindTeamManagerWorkspace = () => {
 
                     form.dataset.submitting = '0';
                 }
+            });
+        });
+    };
+
+    const bindLocalAddTeamButtons = () => {
+        qsa('.js-add-team-row').forEach((button) => {
+            if (button.dataset.localAddBound === '1') {
+                return;
+            }
+
+            button.dataset.localAddBound = '1';
+
+            button.addEventListener('click', () => {
+                if (button.disabled) {
+                    return;
+                }
+
+                const potCard = button.closest('.pot-module-card');
+                const form = qs('.js-score-bulk-form', potCard || document);
+                const table = qs('.score-table', form || document);
+                const tbody = qs('tbody', table || document);
+                if (!form || !table || !tbody) {
+                    return;
+                }
+
+                const tempKey = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                const row = createTempTeamRow(form, tempKey, qsa('tr[data-team-row]', tbody).length + 1);
+                tbody.appendChild(row);
+                sortRowsByTotal(table);
+                bindFormInputs(form);
+                bindLookupToolbars();
+                updateAllRows(table, JSON.parse(form.dataset.placementMap || '{}'));
+                sortRowsByTotal(table);
+
+                const emptyState = qs('.js-pot-empty-state', form);
+                if (emptyState) {
+                    emptyState.hidden = true;
+                }
+
+                qs('.js-table-team-name-input', row)?.focus();
+
+                qs('.js-remove-temp-team', row)?.addEventListener('click', () => {
+                    row.remove();
+                    sortRowsByTotal(table);
+                    const hasRows = qsa('tr[data-team-row]', tbody).length > 0;
+                    if (!hasRows && emptyState) {
+                        emptyState.hidden = false;
+                    }
+                });
             });
         });
     };
@@ -845,11 +1425,7 @@ const bindTeamManagerWorkspace = () => {
                     return;
                 }
 
-                try {
-                    sessionStorage.setItem('bgcalc-scroll-y', String(window.scrollY));
-                } catch (error) {
-                    // ignore
-                }
+                rememberScrollPosition();
 
                 form.dataset.confirmApproved = '1';
 
@@ -857,6 +1433,120 @@ const bindTeamManagerWorkspace = () => {
                     form.requestSubmit();
                 } else {
                     form.submit();
+                }
+            });
+        });
+    };
+
+    const bindInlineTeamDeleteButtons = () => {
+        qsa('.js-inline-team-delete').forEach((button) => {
+            if (button.dataset.deleteBound === '1') {
+                return;
+            }
+
+            button.dataset.deleteBound = '1';
+
+            button.addEventListener('click', async () => {
+                const deleteUrl = button.dataset.deleteUrl || '';
+                if (!deleteUrl || button.disabled) {
+                    return;
+                }
+
+                const ok = await openDeleteConfirmPopup({
+                    title: button.dataset.confirmTitle || 'Hapus Team',
+                    message: button.dataset.confirmMessage || 'Yakin ingin menghapus team ini?',
+                    submitText: button.dataset.confirmSubmit || 'Hapus',
+                });
+
+                if (!ok) {
+                    return;
+                }
+
+                clearPendingScoreSaves();
+                button.disabled = true;
+
+                const formData = new FormData();
+                ensureFormDataCsrf(formData);
+                formData.append('redirect_to', window.location.href);
+                formData.append('delete_mode', 'detach');
+                formData.append('manager_context', 'score');
+
+                try {
+                    await request(deleteUrl, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    rememberScrollPosition();
+                    window.location.reload();
+                } catch (error) {
+                    button.disabled = false;
+                    showFlash(error.message || 'Gagal menghapus team.', 'error');
+                }
+            });
+        });
+    };
+
+    const bindAdvanceSelectedButtons = () => {
+        qsa('.js-advance-selected').forEach((button) => {
+            if (button.dataset.advanceBound === '1') {
+                return;
+            }
+
+            button.dataset.advanceBound = '1';
+
+            button.addEventListener('click', async () => {
+                if (button.disabled) {
+                    return;
+                }
+
+                const potCard = button.closest('.pot-module-card');
+                const form = qs('.js-score-bulk-form', potCard || document);
+                const table = qs('.score-table', form || document);
+                const advanceUrl = button.dataset.advanceUrl || form?.dataset.potAdvanceUrl || '';
+                if (!form || !table || !advanceUrl) {
+                    return;
+                }
+
+                const selectedCheckboxes = qsa('.js-advance-team:checked', table)
+                    .filter((input) => !input.disabled && String(input.value || '').trim() !== '');
+
+                if (!selectedCheckboxes.length) {
+                    setStatus(form, 'error', 'Centang minimal satu team di kolom Lolos terlebih dahulu.');
+                    return;
+                }
+
+                const ok = await openDeleteConfirmPopup({
+                    title: 'Buat Pot Baru',
+                    message: `${selectedCheckboxes.length} team tercentang akan dipindahkan ke pot baru. Lanjutkan?`,
+                    submitText: 'Lanjut',
+                });
+
+                if (!ok) {
+                    return;
+                }
+
+                clearPendingScoreSaves();
+                button.disabled = true;
+                setStatus(form, 'saved', 'Membuat pot baru dari team yang lolos...');
+
+                const formData = new FormData();
+                ensureFormDataCsrf(formData);
+                selectedCheckboxes.forEach((input) => {
+                    formData.append('team_ids[]', String(input.value));
+                });
+                formData.append('redirect_to', window.location.href);
+
+                try {
+                    const payload = await request(advanceUrl, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    window.location.href = payload.redirectUrl || window.location.href;
+                } catch (error) {
+                    button.disabled = false;
+                    setStatus(form, 'error', error.message || 'Gagal membuat pot baru.');
                 }
             });
         });
@@ -889,20 +1579,38 @@ const bindTeamManagerWorkspace = () => {
             toggle.dataset.drawerBound = '1';
 
             const target = toggle.getAttribute('data-team-manager-toggle');
-            const host = target ? document.getElementById(target) : null;
+            const drawer = target ? document.getElementById(target) : null;
+            const workspace = drawer?.closest('.score-page-workspace') || null;
 
-            if (!host) {
+            if (!drawer) {
                 return;
             }
 
             const syncExpandedState = () => {
-                toggle.setAttribute('aria-expanded', host.classList.contains('is-manager-open') ? 'true' : 'false');
+                if (workspace) {
+                    const isOpen = workspace.classList.contains('is-manager-open');
+                    drawer.hidden = !isOpen;
+                    drawer.dataset.open = isOpen ? '1' : '0';
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    return;
+                }
+
+                const isOpen = drawer.dataset.open === '1';
+                drawer.hidden = !isOpen;
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
             };
 
             syncExpandedState();
 
             toggle.addEventListener('click', () => {
-                host.classList.toggle('is-manager-open');
+                if (workspace) {
+                    workspace.classList.toggle('is-manager-open');
+                    syncExpandedState();
+                    return;
+                }
+
+                const isOpen = drawer.dataset.open === '1';
+                drawer.dataset.open = isOpen ? '0' : '1';
                 syncExpandedState();
             });
         });
@@ -915,15 +1623,71 @@ const bindTeamManagerWorkspace = () => {
             button.dataset.drawerCloseBound = '1';
 
             button.addEventListener('click', () => {
-                const workspace = button.closest('.score-page-workspace');
-                if (!workspace) {
+                const drawer = button.closest('.score-team-manager-panel, .team-manager-drawer');
+                if (!drawer) {
                     return;
                 }
 
-                workspace.classList.remove('is-manager-open');
-                qsa('[data-team-manager-toggle="' + workspace.id + '"]').forEach((toggle) => {
-                    toggle.setAttribute('aria-expanded', 'false');
-                });
+                const workspace = drawer.closest('.score-page-workspace');
+                if (workspace) {
+                    workspace.classList.remove('is-manager-open');
+                    drawer.hidden = true;
+                    drawer.dataset.open = '0';
+                    qsa(`[data-team-manager-toggle="${drawer.id}"]`).forEach((toggle) => {
+                        toggle.setAttribute('aria-expanded', 'false');
+                    });
+                    return;
+                }
+
+                drawer.dataset.open = '0';
+                drawer.hidden = true;
+            });
+        });
+    };
+
+    const bindControllerVisibilityToggle = () => {
+        const scorePage = document.getElementById('scorePageHost');
+        if (!scorePage) {
+            return;
+        }
+
+        const restoreButtons = qsa('.controller-restore-btn');
+        const toggleState = (hidden) => {
+            scorePage.classList.toggle('is-controller-hidden', hidden);
+            restoreButtons.forEach((button) => {
+                button.hidden = !hidden;
+            });
+
+            qsa('.js-controller-visibility-toggle').forEach((button) => {
+                const showText = button.dataset.showText || 'Show Controller';
+                const hideText = button.dataset.hideText || 'Hide Controller';
+                button.textContent = hidden ? showText : hideText;
+            });
+
+            try {
+                sessionStorage.setItem('bgcalc-hide-controllers', hidden ? '1' : '0');
+            } catch (error) {
+                // ignore
+            }
+        };
+
+        let initialHidden = false;
+        try {
+            initialHidden = sessionStorage.getItem('bgcalc-hide-controllers') === '1';
+        } catch (error) {
+            initialHidden = false;
+        }
+
+        toggleState(initialHidden);
+
+        qsa('.js-controller-visibility-toggle').forEach((button) => {
+            if (button.dataset.controllerToggleBound === '1') {
+                return;
+            }
+
+            button.dataset.controllerToggleBound = '1';
+            button.addEventListener('click', () => {
+                toggleState(!scorePage.classList.contains('is-controller-hidden'));
             });
         });
     };
@@ -944,12 +1708,98 @@ const bindTeamManagerWorkspace = () => {
 
             try {
                 const payload = hasTeamRows(form) ? await saveBulk(form) : await savePotMeta(form);
-                setStatus(form, 'saved', payload.message || '');
+                setStatus(form, 'saved', payload.reloadPage ? (payload.message || '') : '');
+
+                if (payload.reloadPage) {
+                    rememberScrollPosition();
+                    window.setTimeout(() => {
+                        window.location.reload();
+                    }, 180);
+                    return;
+                }
             } catch (error) {
-                setStatus(form, 'error', '');
+                setStatus(form, 'error', error.message || 'Gagal menyimpan perubahan.');
             } finally {
                 form.dataset.saving = '0';
             }
+        };
+
+        const bindTableTeamNameComboboxes = () => {
+            qsa('.js-table-team-name-input', form).forEach((input) => {
+                if (input.dataset.tableLookupBound === '1') {
+                    return;
+                }
+
+                input.dataset.tableLookupBound = '1';
+                const shell = input.closest('.team-table-combobox-shell');
+                const datalistId = input.getAttribute('list') || '';
+                const listEl = datalistId ? document.getElementById(datalistId) : qs('.js-table-team-datalist', shell || form);
+
+                const fillList = async () => {
+                    if (!listEl) {
+                        return [];
+                    }
+
+                    const tournamentId = qs('input[name="tournament_id"]', form)?.value || '0';
+                    const potId = form.dataset.potId || '0';
+
+                    try {
+                        const lookupTeams = await fetchLookupTeams(tournamentId, potId);
+                        const keyword = (input.value || '').trim().toLowerCase();
+                        const matches = lookupTeams
+                            .filter((team) => !keyword || (team.name || '').toLowerCase().includes(keyword) || (team.search_text || '').includes(keyword))
+                            .slice(0, 10);
+
+                        listEl.innerHTML = '';
+                        const seen = new Set();
+
+                        matches.forEach((team) => {
+                            const value = (team.name || '').trim();
+                            if (!value || seen.has(value.toLowerCase())) {
+                                return;
+                            }
+
+                            seen.add(value.toLowerCase());
+                            const option = document.createElement('option');
+                            option.value = value;
+                            listEl.appendChild(option);
+                        });
+
+                        return lookupTeams;
+                    } catch (error) {
+                        listEl.innerHTML = '';
+                        return [];
+                    }
+                };
+
+                const run = async () => {
+                    const keyword = (input.value || '').trim().toLowerCase();
+                    if (!keyword) {
+                        return;
+                    }
+
+                    await fillList();
+                };
+
+                input.addEventListener('input', () => {
+                    void run();
+                });
+
+                input.addEventListener('focus', () => {
+                    void fillList();
+                });
+
+                input.addEventListener('change', async () => {
+                    const lookupTeams = await fillList();
+                    const typedValue = (input.value || '').trim().toLowerCase();
+                    const exactMatch = lookupTeams.find((team) => (team.name || '').trim().toLowerCase() === typedValue);
+                    if (exactMatch) {
+                        input.value = exactMatch.name || '';
+                    }
+
+                    scheduleSave(form, saveNow);
+                });
+            });
         };
 
         qsa('.js-score-input, .js-team-input, .js-member-input, .js-pot-input', form).forEach((input) => {
@@ -963,6 +1813,9 @@ const bindTeamManagerWorkspace = () => {
                 const row = input.closest('tr[data-team-row]');
                 if (row) {
                     updateRowTotal(row, placementMap);
+                    if (table) {
+                        sortRowsByTotal(table);
+                    }
                 }
 
                 if (input.classList.contains('team-name-input') || input.classList.contains('team-members-inline')) {
@@ -977,6 +1830,8 @@ const bindTeamManagerWorkspace = () => {
             input.addEventListener('blur', queueSave);
         });
 
+        bindTableTeamNameComboboxes();
+
         const addGameButton = qs('.js-add-game', form.closest('.pot-module-card') || document);
         const removeGameButton = qs('.js-remove-game', form.closest('.pot-module-card') || document);
         const gameCountInput = qs('.js-game-count', form);
@@ -989,32 +1844,37 @@ const bindTeamManagerWorkspace = () => {
                 const firstHeaderRow = qs('thead tr:first-child', table);
                 const secondHeaderRow = qs('thead tr:nth-child(2)', table);
                 const totalHead = qs('.js-total-head', firstHeaderRow);
+                const qualifyHead = qs('.qualify-col', firstHeaderRow);
+                const insertHeadBefore = qualifyHead || totalHead;
 
-                if (!firstHeaderRow || !secondHeaderRow || !totalHead) {
+                if (!firstHeaderRow || !secondHeaderRow || !totalHead || !insertHeadBefore) {
                     return;
                 }
 
-                firstHeaderRow.insertBefore(createHeadCell(nextGameNo), totalHead);
+                firstHeaderRow.insertBefore(createHeadCell(nextGameNo), insertHeadBefore);
                 secondHeaderRow.appendChild(createSubCell(nextGameNo, 'rank', 'Rank'));
                 secondHeaderRow.appendChild(createSubCell(nextGameNo, 'placement', 'P.Rank'));
                 secondHeaderRow.appendChild(createSubCell(nextGameNo, 'kill', 'Kill'));
 
                 qsa('tbody tr[data-team-row]', table).forEach((row) => {
                     const totalCell = qs('.score-total-cell', row);
+                    const qualifyCell = qs('.qualify-cell', row);
+                    const insertCellBefore = qualifyCell || totalCell;
                     const teamId = row.dataset.teamId;
-                    if (!totalCell || !teamId) {
+                    if (!totalCell || !insertCellBefore || !teamId) {
                         return;
                     }
 
-                    row.insertBefore(createInputCell(teamId, nextGameNo, 'rank'), totalCell);
-                    row.insertBefore(createInputCell(teamId, nextGameNo, 'placement'), totalCell);
-                    row.insertBefore(createInputCell(teamId, nextGameNo, 'kill'), totalCell);
+                    row.insertBefore(createInputCell(teamId, nextGameNo, 'rank'), insertCellBefore);
+                    row.insertBefore(createInputCell(teamId, nextGameNo, 'placement'), insertCellBefore);
+                    row.insertBefore(createInputCell(teamId, nextGameNo, 'kill'), insertCellBefore);
                 });
 
                 gameCountInput.value = String(nextGameNo);
                 updateCompactVars(form);
                 bindFormInputs(form);
                 updateAllRows(table, placementMap);
+                sortRowsByTotal(table);
                 scheduleSave(form, saveNow);
             });
         }
@@ -1033,22 +1893,28 @@ const bindTeamManagerWorkspace = () => {
                 gameCountInput.value = String(currentGameNo - 1);
                 updateCompactVars(form);
                 updateAllRows(table, placementMap);
+                sortRowsByTotal(table);
                 scheduleSave(form, saveNow);
             });
         }
 
         if (table) {
             updateAllRows(table, placementMap);
+            sortRowsByTotal(table);
         }
     };
 
     const initScoreWorkspace = () => {
         qsa('.js-score-bulk-form').forEach((form) => bindFormInputs(form));
         bindQuickAddTeamForms();
+        bindLocalAddTeamButtons();
+        bindAdvanceSelectedButtons();
         bindDeleteConfirmForms();
+        bindInlineTeamDeleteButtons();
         bindLookupToolbars();
         bindTeamManagerWorkspace();
         bindManagerDrawer();
+        bindControllerVisibilityToggle();
         restoreScrollAfterDelete();
     };
 

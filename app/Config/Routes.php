@@ -29,12 +29,14 @@ $routes->get('tournaments/(:num)/pots', 'PotController::index/$1', $adminFilters
 $routes->post('pots/store', 'PotController::store', $adminFilters);
 $routes->post('pots/update/(:num)', 'PotController::update/$1', $adminFilters);
 $routes->post('pots/update-images/(:num)', 'PotController::updateImages/$1', $adminFilters);
+$routes->post('pots/advance/(:num)', 'PotController::advanceSelected/$1', $adminFilters);
 $routes->post('pots/delete/(:num)', 'PotController::delete/$1', $adminFilters);
 $routes->get('pots/(:num)/teams', 'TeamController::index/$1', $adminFilters);
 $routes->get('pots/(:num)/scores', 'ScoreController::index/$1', $adminFilters);
 
 $routes->post('teams/store', 'TeamController::store', $adminFilters);
 $routes->post('teams/update/(:num)', 'TeamController::update/$1', $adminFilters);
+$routes->post('teams/detach/(:num)', 'TeamController::detach/$1', $adminFilters);
 $routes->post('teams/delete/(:num)', 'TeamController::delete/$1', $adminFilters);
 $routes->post('teams/sync-members/(:num)', 'TeamController::syncMembers/$1', $adminFilters);
 $routes->get('teams/manager-data', 'TeamController::managerData', $adminFilters);

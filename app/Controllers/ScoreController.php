@@ -100,6 +100,22 @@ class ScoreController extends BaseController
         foreach ($pots as $pot) {
             $potKey = (int) $pot['id'];
             $potTeams = $teamsByPot[$potKey] ?? [];
+            usort($potTeams, function (array $left, array $right) use ($totalsByPot, $potKey): int {
+                $leftTotal = (int) ($totalsByPot[$potKey][(int) $left['id']] ?? 0);
+                $rightTotal = (int) ($totalsByPot[$potKey][(int) $right['id']] ?? 0);
+
+                if ($leftTotal !== $rightTotal) {
+                    return $rightTotal <=> $leftTotal;
+                }
+
+                $leftSort = (int) ($left['sort_order'] ?? 0);
+                $rightSort = (int) ($right['sort_order'] ?? 0);
+                if ($leftSort !== $rightSort) {
+                    return $leftSort <=> $rightSort;
+                }
+
+                return strcmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+            });
             $memberTextByTeam = [];
 
             foreach ($potTeams as $team) {
@@ -181,91 +197,80 @@ class ScoreController extends BaseController
 
         $teamNames = $this->request->getPost('team_names');
         $teamMembersText = $this->request->getPost('team_members_text');
-        if (is_array($teamNames)) {
-            $teamsForRename = $this->teamModel->where('pot_id', $potId)->findAll();
-            $teamMap = [];
-            foreach ($teamsForRename as $team) {
-                $teamMap[(int) $team['id']] = $team;
-            }
-
-            foreach ($teamNames as $teamId => $teamName) {
-                $teamId = (int) $teamId;
-                $teamName = trim((string) $teamName);
-
-                if ($teamName === '' || ! isset($teamMap[$teamId])) {
-                    continue;
-                }
-
-                $this->teamModel->update($teamId, ['name' => $teamName]);
-            }
-        }
-
-        if (is_array($teamMembersText)) {
-            $teamsForMembers = $this->teamModel->where('pot_id', $potId)->findAll();
-            $teamIdsForMembers = array_map(static fn (array $team): int => (int) $team['id'], $teamsForMembers);
-            $teamIdMap = array_fill_keys($teamIdsForMembers, true);
-
-            foreach ($teamMembersText as $teamId => $memberText) {
-                $teamId = (int) $teamId;
-
-                if (! isset($teamIdMap[$teamId])) {
-                    continue;
-                }
-
-                $normalizedMemberText = str_replace([',', ';'], "\n", (string) $memberText);
-                $lines = preg_split('/\r\n|\r|\n/', $normalizedMemberText) ?: [];
-                $members = [];
-                foreach ($lines as $line) {
-                    $name = trim($line);
-                    if ($name !== '') {
-                        $members[] = $name;
-                    }
-                }
-
-                $this->teamMemberModel->where('team_id', $teamId)->delete();
-                foreach ($members as $memberName) {
-                    $this->teamMemberModel->insert([
-                        'team_id'         => $teamId,
-                        'registration_id' => null,
-                        'player_name'     => $memberName,
-                        'player_role'     => null,
-                    ]);
-                }
-            }
-        }
-
         $gameCount = max(1, (int) ($this->request->getPost('game_count') ?? 1));
         $rawScores = $this->request->getPost('scores');
-
         if (! is_array($rawScores)) {
-            return $this->saveBulkError('Data score tidak ditemukan.', $isAjax);
+            $rawScores = [];
         }
 
         $teams = $this->teamModel
             ->where('pot_id', $potId)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
             ->findAll();
+        $existingTeamsById = [];
+        $nextSortOrder = 1;
+        foreach ($teams as $team) {
+            $teamId = (int) $team['id'];
+            $existingTeamsById[$teamId] = $team;
+                $nextSortOrder = max($nextSortOrder, (int) ($team['sort_order'] ?? 0) + 1);
+        }
 
-        $teamIds = array_map(static fn (array $team): int => (int) $team['id'], $teams);
-        $teamMap = array_fill_keys($teamIds, true);
+        $scopeTeams = $this->duplicateScopeTeams((int) ($pot['tournament_id'] ?? 0));
+        $scopeTeamsById = [];
+        $reservedNames = [];
+        foreach ($scopeTeams as $scopeTeam) {
+            $scopeTeamId = (int) $scopeTeam['id'];
+            $scopeTeamsById[$scopeTeamId] = $scopeTeam;
+
+            $normalizedScopeName = $this->normalizeTeamName((string) ($scopeTeam['name'] ?? ''));
+            if ($normalizedScopeName !== '' && ! isset($reservedNames[$normalizedScopeName])) {
+                $reservedNames[$normalizedScopeName] = $scopeTeamId;
+            }
+        }
 
         $errors  = [];
-        $payload = [];
+        $resolvedTeamIds = [];
+        $scoreRowsByTeamKey = [];
+        $teamMemberPayload = [];
+        $teamUpdateOps = [];
+        $teamCreateOps = [];
+        $resolvedTempTeamKeys = [];
+        $attachedTempTargets = [];
+        $teamNames = is_array($teamNames) ? $teamNames : [];
+        $teamMembersText = is_array($teamMembersText) ? $teamMembersText : [];
+        $teamKeys = array_values(array_unique(array_merge(
+            array_map('strval', array_keys($teamNames)),
+            array_map('strval', array_keys($rawScores)),
+            array_map('strval', array_keys($teamMembersText))
+        )));
 
-        foreach ($rawScores as $teamId => $teamScores) {
-            $teamId = (int) $teamId;
+        foreach ($teamKeys as $teamKey) {
+            $teamName = trim((string) ($teamNames[$teamKey] ?? ''));
+            $normalizedTeamName = $this->normalizeTeamName($teamName);
+            $memberText = trim((string) ($teamMembersText[$teamKey] ?? ''));
+            $teamScores = $rawScores[$teamKey] ?? [];
+            $hasScoreValue = false;
+            $parsedScoreRows = [];
 
-            if (! isset($teamMap[$teamId]) || ! is_array($teamScores)) {
-                continue;
+            if (! is_array($teamScores)) {
+                $teamScores = [];
             }
 
             for ($gameNo = 1; $gameNo <= $gameCount; $gameNo++) {
                 $gameInput = $teamScores[$gameNo] ?? [];
-                $rankRaw   = trim((string) ($gameInput['rank_no'] ?? ''));
-                $killRaw   = trim((string) ($gameInput['kill_point'] ?? ''));
+                if (! is_array($gameInput)) {
+                    $gameInput = [];
+                }
+
+                $rankRaw = trim((string) ($gameInput['rank_no'] ?? ''));
+                $killRaw = trim((string) ($gameInput['kill_point'] ?? ''));
 
                 if ($rankRaw === '' && $killRaw === '') {
                     continue;
                 }
+
+                $hasScoreValue = true;
 
                 if ($rankRaw === '' || $killRaw === '') {
                     $errors[] = 'Rank dan kill harus diisi bersamaan untuk semua game yang dipakai.';
@@ -286,10 +291,7 @@ class ScoreController extends BaseController
                 }
 
                 $placementPoint = $this->calculatePlacementPoint($rankNo);
-
-                $payload[] = [
-                    'pot_id'          => $potId,
-                    'team_id'         => $teamId,
+                $parsedScoreRows[] = [
                     'game_no'         => $gameNo,
                     'rank_no'         => $rankNo,
                     'kill_point'      => $killPoint,
@@ -297,6 +299,98 @@ class ScoreController extends BaseController
                     'total_point'     => $placementPoint + $killPoint,
                 ];
             }
+
+            if (ctype_digit($teamKey) && isset($existingTeamsById[(int) $teamKey])) {
+                $teamId = (int) $teamKey;
+                $resolvedTeamIds[$teamKey] = $teamId;
+                $scoreRowsByTeamKey[$teamKey] = $parsedScoreRows;
+                if (array_key_exists($teamKey, $teamMembersText)) {
+                    $teamMemberPayload[$teamKey] = $memberText;
+                }
+
+                $existingName = trim((string) ($existingTeamsById[$teamId]['name'] ?? ''));
+                $existingNormalizedName = $this->normalizeTeamName($existingName);
+
+                if ($teamName !== '' && $teamName !== $existingName) {
+                    $conflictRef = $reservedNames[$normalizedTeamName] ?? null;
+                    if ($normalizedTeamName !== '' && $conflictRef !== null && (string) $conflictRef !== (string) $teamId) {
+                        $errors[] = $this->duplicateNameMessage($teamName, $conflictRef, $scopeTeamsById, $potId);
+                        continue;
+                    }
+
+                    if ($existingNormalizedName !== '' && (($reservedNames[$existingNormalizedName] ?? null) === $teamId)) {
+                        unset($reservedNames[$existingNormalizedName]);
+                    }
+
+                    if ($normalizedTeamName !== '') {
+                        $reservedNames[$normalizedTeamName] = $teamId;
+                    }
+
+                    $teamUpdateOps[$teamId] = array_merge($teamUpdateOps[$teamId] ?? [], [
+                        'name' => $teamName,
+                    ]);
+                    $scopeTeamsById[$teamId]['name'] = $teamName;
+                }
+
+                continue;
+            }
+
+            if ($teamName === '' && $memberText === '' && ! $hasScoreValue) {
+                continue;
+            }
+
+            $scoreRowsByTeamKey[$teamKey] = $parsedScoreRows;
+            if (array_key_exists($teamKey, $teamMembersText)) {
+                $teamMemberPayload[$teamKey] = $memberText;
+            }
+
+            if ($teamName !== '' && $normalizedTeamName !== '') {
+                $conflictRef = $reservedNames[$normalizedTeamName] ?? null;
+                if ($conflictRef !== null) {
+                    if (is_int($conflictRef) || ctype_digit((string) $conflictRef)) {
+                        $conflictTeamId = (int) $conflictRef;
+                        $conflictTeam = $scopeTeamsById[$conflictTeamId] ?? null;
+
+                        if ($conflictTeam !== null && ($conflictTeam['pot_id'] === null || (int) $conflictTeam['pot_id'] === 0)) {
+                            if (isset($attachedTempTargets[$conflictTeamId])) {
+                                $errors[] = 'Nama team "' . $teamName . '" sudah dipakai oleh row baru lain. Gunakan satu row saja untuk team ini.';
+                                continue;
+                            }
+
+                            $attachedTempTargets[$conflictTeamId] = $teamKey;
+                            $resolvedTeamIds[$teamKey] = $conflictTeamId;
+                            $resolvedTempTeamKeys[] = $teamKey;
+                            $teamUpdateOps[$conflictTeamId] = array_merge($teamUpdateOps[$conflictTeamId] ?? [], [
+                                'pot_id'     => $potId,
+                                'sort_order' => $nextSortOrder,
+                            ]);
+                            $scopeTeamsById[$conflictTeamId]['pot_id'] = $potId;
+                            $scopeTeamsById[$conflictTeamId]['pot_name'] = (string) ($pot['name'] ?? '');
+                            $nextSortOrder++;
+                            continue;
+                        }
+                    }
+
+                    $errors[] = $this->duplicateNameMessage($teamName, $conflictRef, $scopeTeamsById, $potId);
+                    continue;
+                }
+
+                $reservedNames[$normalizedTeamName] = 'temp:' . $teamKey;
+                $teamCreateOps[$teamKey] = [
+                    'name'       => $teamName,
+                    'sort_order' => $nextSortOrder,
+                ];
+                $nextSortOrder++;
+                continue;
+            }
+
+            [$generatedTeamName, $generatedSeed] = $this->nextGeneratedTeamName($reservedNames, $nextSortOrder);
+            $reservedNames[$this->normalizeTeamName($generatedTeamName)] = 'temp:' . $teamKey;
+            $teamCreateOps[$teamKey] = [
+                'name'       => $generatedTeamName,
+                'sort_order' => $generatedSeed,
+            ];
+            $nextSortOrder = $generatedSeed + 1;
         }
 
         if ($errors !== []) {
@@ -308,6 +402,50 @@ class ScoreController extends BaseController
 
         $db->transStart();
 
+        foreach ($teamUpdateOps as $teamId => $teamUpdate) {
+            if ($teamUpdate !== []) {
+                $this->teamModel->update((int) $teamId, $teamUpdate);
+            }
+        }
+
+        foreach ($teamCreateOps as $teamKey => $teamCreate) {
+            $createdTeamId = (int) $this->teamModel->insert([
+                'pot_id'     => $potId,
+                'name'       => (string) $teamCreate['name'],
+                'sort_order' => (int) $teamCreate['sort_order'],
+            ], true);
+
+            $resolvedTeamIds[(string) $teamKey] = $createdTeamId;
+            $resolvedTempTeamKeys[] = (string) $teamKey;
+        }
+
+        foreach ($teamMemberPayload as $teamKey => $memberText) {
+            $resolvedTeamId = $resolvedTeamIds[(string) $teamKey] ?? null;
+            if (! $resolvedTeamId) {
+                continue;
+            }
+
+            $normalizedMemberText = str_replace([',', ';'], "\n", (string) $memberText);
+            $lines = preg_split('/\r\n|\r|\n/', $normalizedMemberText) ?: [];
+            $members = [];
+            foreach ($lines as $line) {
+                $name = trim($line);
+                if ($name !== '') {
+                    $members[] = $name;
+                }
+            }
+
+            $this->teamMemberModel->where('team_id', (int) $resolvedTeamId)->delete();
+            foreach ($members as $memberName) {
+                $this->teamMemberModel->insert([
+                    'team_id'         => (int) $resolvedTeamId,
+                    'registration_id' => null,
+                    'player_name'     => $memberName,
+                    'player_role'     => null,
+                ]);
+            }
+        }
+
         $builder->where('pot_id', $potId)
             ->where('game_no >', $gameCount)
             ->delete();
@@ -315,6 +453,26 @@ class ScoreController extends BaseController
         $builder->where('pot_id', $potId)
             ->where('game_no <=', $gameCount)
             ->delete();
+
+        $payload = [];
+        foreach ($scoreRowsByTeamKey as $teamKey => $scoreRows) {
+            $resolvedTeamId = $resolvedTeamIds[(string) $teamKey] ?? null;
+            if (! $resolvedTeamId) {
+                continue;
+            }
+
+            foreach ($scoreRows as $scoreRow) {
+                $payload[] = [
+                    'pot_id'          => $potId,
+                    'team_id'         => (int) $resolvedTeamId,
+                    'game_no'         => (int) $scoreRow['game_no'],
+                    'rank_no'         => (int) $scoreRow['rank_no'],
+                    'kill_point'      => (int) $scoreRow['kill_point'],
+                    'placement_point' => (int) $scoreRow['placement_point'],
+                    'total_point'     => (int) $scoreRow['total_point'],
+                ];
+            }
+        }
 
         if ($payload !== []) {
             $this->scoreModel->insertBatch($payload);
@@ -327,9 +485,13 @@ class ScoreController extends BaseController
         }
 
         if ($isAjax) {
+            $reloadPage = $resolvedTempTeamKeys !== [];
             return $this->response->setJSON([
                 'status'        => 'success',
-                'message'       => 'Perubahan berhasil disimpan.',
+                'message'       => $reloadPage
+                    ? 'Team tersimpan. Halaman akan dimuat ulang supaya row baru sinkron dengan database.'
+                    : 'Perubahan berhasil disimpan.',
+                'reloadPage'    => $reloadPage,
                 'csrfTokenName' => csrf_token(),
                 'csrfHash'      => csrf_hash(),
             ]);
@@ -470,5 +632,76 @@ class ScoreController extends BaseController
         $redirect = redirect()->back()->with('error', $message);
 
         return $withInput ? $redirect->withInput() : $redirect;
+    }
+
+    private function normalizeTeamName(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
+    }
+
+    private function duplicateScopeTeams(int $tournamentId): array
+    {
+        $builder = $this->teamModel
+            ->select('teams.id, teams.pot_id, teams.name, teams.sort_order, pots.name AS pot_name, pots.tournament_id')
+            ->join('pots', 'pots.id = teams.pot_id', 'left');
+
+        if ($tournamentId > 0) {
+            $builder->groupStart()
+                ->where('pots.tournament_id', $tournamentId)
+                ->orWhere('teams.pot_id IS NULL', null, false)
+                ->groupEnd();
+        }
+
+        return $builder
+            ->orderBy('teams.sort_order', 'ASC')
+            ->orderBy('teams.name', 'ASC')
+            ->findAll();
+    }
+
+    private function duplicateNameMessage(string $teamName, $conflictRef, array $scopeTeamsById, int $currentPotId): string
+    {
+        $safeTeamName = trim($teamName) !== '' ? trim($teamName) : 'Team ini';
+
+        if (! is_int($conflictRef) && ! ctype_digit((string) $conflictRef)) {
+            return 'Nama team "' . $safeTeamName . '" dipakai lebih dari satu row baru. Gunakan satu row saja supaya tidak duplikat.';
+        }
+
+        $conflictTeam = $scopeTeamsById[(int) $conflictRef] ?? null;
+        if ($conflictTeam === null) {
+            return 'Nama team "' . $safeTeamName . '" sudah ada di database. Gunakan team yang sudah ada supaya tidak duplikat.';
+        }
+
+        if ($conflictTeam['pot_id'] === null || (int) $conflictTeam['pot_id'] === 0) {
+            return 'Nama team "' . $safeTeamName . '" sudah ada di database tanpa pot. Gunakan team yang sudah ada, jangan buat duplikat baru.';
+        }
+
+        if ((int) $conflictTeam['pot_id'] === $currentPotId) {
+            return 'Nama team "' . $safeTeamName . '" sudah ada di pot ini. Gunakan row team yang sudah ada.';
+        }
+
+        $potName = trim((string) ($conflictTeam['pot_name'] ?? ''));
+        if ($potName !== '') {
+            return 'Nama team "' . $safeTeamName . '" sudah ada di ' . $potName . '. Pindahkan team yang ada lewat Team Manager agar tidak duplikat.';
+        }
+
+        return 'Nama team "' . $safeTeamName . '" sudah ada di pot lain. Pindahkan team yang ada lewat Team Manager agar tidak duplikat.';
+    }
+
+    private function nextGeneratedTeamName(array $reservedNames, int $seed): array
+    {
+        $candidate = max(1, $seed);
+
+        while (true) {
+            $generatedName = 'Team ' . $candidate;
+            $normalized = $this->normalizeTeamName($generatedName);
+
+            if ($normalized !== '' && ! isset($reservedNames[$normalized])) {
+                return [$generatedName, $candidate];
+            }
+
+            $candidate++;
+        }
     }
 }

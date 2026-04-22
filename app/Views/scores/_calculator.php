@@ -54,14 +54,17 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
             >
         </div>
 
-        <div class="pot-toolbar">
+        <div class="pot-toolbar controller-only">
             <div class="pot-toolbar-group">
-                <form action="<?= site_url('teams/store') ?>" method="post" class="m-0 pot-inline-form js-quick-add-team-form">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="pot_id" value="<?= esc((string) $pot['id']) ?>">
-                    <input type="hidden" name="redirect_to" value="<?= current_url() ?>">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm toolbar-btn" <?= $disabledAttr ?>>Add Team</button>
-                </form>
+                <button type="button" class="btn btn-outline-secondary btn-sm toolbar-btn js-add-team-row" <?= $disabledAttr ?>>Add Team</button>
+                <button
+                    type="button"
+                    class="btn btn-outline-success btn-sm toolbar-btn js-advance-selected"
+                    data-advance-url="<?= site_url('pots/advance/' . $pot['id']) ?>"
+                    <?= $disabledAttr ?>
+                >
+                    Lolos -> Pot Baru
+                </button>
 
                 <button type="button" class="btn btn-outline-primary btn-sm toolbar-btn js-add-game" id="<?= esc($addButtonId) ?>" <?= $disabledAttr ?>>+ Game</button>
                 <button type="button" class="btn btn-outline-danger btn-sm toolbar-btn js-remove-game" id="<?= esc($removeButtonId) ?>" <?= $disabledAttr ?>>- Game</button>
@@ -85,7 +88,7 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
         </div>
     </div>
 
-    <div class="collapse pot-screenshot-collapse" id="<?= esc($screenshotId) ?>">
+    <div class="collapse pot-screenshot-collapse controller-only" id="<?= esc($screenshotId) ?>">
         <div class="pot-inline-panel">
             <form action="<?= site_url('pots/update-images/' . $pot['id']) ?>" method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
                 <?= csrf_field() ?>
@@ -126,6 +129,7 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
         data-can-manage="<?= $canManage ? '1' : '0' ?>"
         data-pot-id="<?= esc((string) $pot['id']) ?>"
         data-pot-update-url="<?= site_url('pots/update/' . $pot['id']) ?>"
+        data-pot-advance-url="<?= site_url('pots/advance/' . $pot['id']) ?>"
         data-placement-map='<?= json_encode($placementMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>'
     >
         <?= csrf_field() ?>
@@ -133,38 +137,35 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
         <input type="hidden" name="tournament_id" value="<?= esc((string) $tournamentId) ?>">
         <input type="hidden" name="redirect_to" value="<?= current_url() ?>">
         <input type="hidden" name="game_count" id="<?= esc($gameCountId) ?>" class="js-game-count" value="<?= esc((string) count($gameNos)) ?>">
+        <div class="auto-save-status" data-state="idle" aria-live="polite"></div>
 
-        <?php if ($teams === []): ?>
-            <div class="pot-empty-state">
-                <div>Belum ada team di pot ini.</div>
-                <div class="small text-muted mt-1">Klik Add Team atau Team Manager untuk menambahkan team baru.</div>
-            </div>
-        <?php else: ?>
-            <div class="score-table-shell<?= $allowSideScroll ? ' is-scrollable' : '' ?>" style="--team-col-width: <?= esc((string) $teamColWidth) ?>px; --score-col-width: <?= esc((string) $scoreColWidth) ?>px; --placement-col-width: <?= esc((string) $placementColWidth) ?>px;">
-                <table class="table table-bordered score-table score-calculator-table mb-0" id="<?= esc($tableId) ?>">
-                    <thead>
-                        <tr>
-                            <th rowspan="2" class="text-center align-middle score-no-col">No</th>
-                            <th rowspan="2" class="align-middle score-team-col">Team</th>
-                            <?php foreach ($gameNos as $gameNo): ?>
-                                <th colspan="3" class="text-center game-group-head" data-game-group="<?= esc((string) $gameNo) ?>">Game <?= esc((string) $gameNo) ?></th>
-                            <?php endforeach; ?>
-                            <th rowspan="2" class="text-center align-middle total-col js-total-head">Total</th>
-                            <th rowspan="2" class="text-center align-middle action-col">Aksi</th>
-                        </tr>
-                        <tr id="<?= esc($subHeaderId) ?>">
-                            <?php foreach ($gameNos as $gameNo): ?>
-                                <th class="text-center game-subhead" data-game-col="<?= esc((string) $gameNo) ?>" data-col-role="rank">Rank</th>
-                                <th class="text-center game-subhead" data-game-col="<?= esc((string) $gameNo) ?>" data-col-role="placement">P.Rank</th>
-                                <th class="text-center game-subhead" data-game-col="<?= esc((string) $gameNo) ?>" data-col-role="kill">Kill</th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
+        <div class="score-table-shell<?= $allowSideScroll ? ' is-scrollable' : '' ?>" style="--team-col-width: <?= esc((string) $teamColWidth) ?>px; --score-col-width: <?= esc((string) $scoreColWidth) ?>px; --placement-col-width: <?= esc((string) $placementColWidth) ?>px;">
+            <table class="table table-bordered score-table score-calculator-table mb-0" id="<?= esc($tableId) ?>">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="text-center align-middle score-no-col">No</th>
+                        <th rowspan="2" class="align-middle score-team-col">Team</th>
+                        <?php foreach ($gameNos as $gameNo): ?>
+                            <th colspan="3" class="text-center game-group-head" data-game-group="<?= esc((string) $gameNo) ?>">Game <?= esc((string) $gameNo) ?></th>
+                        <?php endforeach; ?>
+                        <th rowspan="2" class="text-center align-middle qualify-col controller-only">Lolos</th>
+                        <th rowspan="2" class="text-center align-middle total-col js-total-head">Total</th>
+                        <th rowspan="2" class="text-center align-middle action-col controller-only">Aksi</th>
+                    </tr>
+                    <tr id="<?= esc($subHeaderId) ?>">
+                        <?php foreach ($gameNos as $gameNo): ?>
+                            <th class="text-center game-subhead" data-game-col="<?= esc((string) $gameNo) ?>" data-col-role="rank">Rank</th>
+                            <th class="text-center game-subhead" data-game-col="<?= esc((string) $gameNo) ?>" data-col-role="placement">P.Rank</th>
+                            <th class="text-center game-subhead" data-game-col="<?= esc((string) $gameNo) ?>" data-col-role="kill">Kill</th>
+                        <?php endforeach; ?>
+                    </tr>
+                </thead>
 
-                    <tbody>
-                        <?php foreach ($teams as $index => $team): ?>
+                <tbody>
+                    <?php foreach ($teams as $index => $team): ?>
                             <?php
                             $teamScores   = $scoresByTeam[$team['id']] ?? [];
+                            $tableLookupId = 'teamTableLookup-' . (int) $pot['id'] . '-' . (int) $team['id'];
                             $teamMembers  = array_values(array_filter(array_map(
                                 static fn (array $member): string => trim((string) ($member['player_name'] ?? '')),
                                 $membersByTeam[$team['id']] ?? []
@@ -187,13 +188,18 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
                                 <td class="score-team-col team-cell">
                                     <div class="team-cell-inner">
                                         <div class="team-main-line">
-                                            <input
-                                                type="text"
-                                                class="form-control form-control-sm fw-semibold team-name-input compact-input js-team-input"
-                                                name="team_names[<?= esc((string) $team['id']) ?>]"
-                                                value="<?= esc($team['name']) ?>"
-                                                <?= $readonlyAttr ?>
-                                            >
+                                            <div class="team-manager-combobox-shell team-table-combobox-shell">
+                                                <input
+                                                    type="text"
+                                                    class="form-control form-control-sm fw-semibold team-name-input compact-input js-team-input js-table-team-name-input"
+                                                    name="team_names[<?= esc((string) $team['id']) ?>]"
+                                                    value="<?= esc($team['name']) ?>"
+                                                    autocomplete="off"
+                                                    list="<?= esc($tableLookupId) ?>"
+                                                    <?= $readonlyAttr ?>
+                                                >
+                                                <datalist id="<?= esc($tableLookupId) ?>" class="js-table-team-datalist"></datalist>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -233,20 +239,43 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
                                     </td>
                                 <?php endforeach; ?>
 
+                                <td class="qualify-cell controller-only">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input js-advance-team"
+                                        value="<?= esc((string) $team['id']) ?>"
+                                        <?= $disabledAttr ?>
+                                    >
+                                </td>
+
                                 <td class="score-total-cell total-cell"><?= esc((string) ($totalsByTeam[$team['id']] ?? 0)) ?></td>
 
-                                <td class="team-row-actions">
-                                    <form action="<?= site_url('teams/delete/' . $team['id']) ?>" method="post" class="m-0 js-team-delete-form" data-team-id="<?= esc((string) $team['id']) ?>" data-pot-id="<?= esc((string) $pot['id']) ?>" data-confirm-title="Hapus Team" data-confirm-message="Yakin ingin menghapus team ini?" data-confirm-submit="Hapus">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn-outline-danger btn-sm toolbar-btn" <?= $disabledAttr ?>>Hapus</button>
-                                    </form>
+                                <td class="team-row-actions controller-only">
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-danger btn-sm toolbar-btn js-inline-team-delete"
+                                        data-delete-url="<?= site_url('teams/detach/' . $team['id']) ?>"
+                                        data-team-id="<?= esc((string) $team['id']) ?>"
+                                        data-team-name="<?= esc((string) $team['name']) ?>"
+                                        data-confirm-title="Lepas Dari Pot"
+                                        data-confirm-message="Yakin ingin melepas team ini dari pot dan menghapus score terkait? Data team tetap tersimpan di database."
+                                        data-confirm-submit="Lepas"
+                                        <?= $disabledAttr ?>
+                                    >
+                                        Hapus
+                                    </button>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php if ($teams === []): ?>
+                <div class="pot-empty-state js-pot-empty-state">
+                    <div>Belum ada team di pot ini.</div>
+                    <div class="small text-muted mt-1">Klik Add Team untuk menambah row kosong, atau Team Manager untuk kelola roster.</div>
+                </div>
+            <?php endif; ?>
+        </div>
     </form>
 </div>
 

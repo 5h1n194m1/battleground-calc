@@ -52,9 +52,6 @@ class ImportController extends BaseController
             : [];
 
         $selectedPotId = (int) ($this->request->getGet('pot_id') ?? 0);
-        if ($selectedPotId <= 0 && $pots !== []) {
-            $selectedPotId = (int) $pots[0]['id'];
-        }
 
         return view('imports/registrations', [
             'pageTitle'            => 'Import Registrations',

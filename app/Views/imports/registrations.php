@@ -79,6 +79,7 @@
         'currentTournamentId'  => $selectedTournamentId,
         'currentPotId'         => $selectedPotId,
         'canManage'            => true,
+        'allowUnassigned'      => true,
     ]) ?>
 
     <div class="card import-card">

@@ -23,29 +23,39 @@ $isAdmin = auth()->user()?->inGroup('admin') ?? false;
             <span class="badge <?= esc($badgeClass) ?> status-chip"><?= esc($statusLabel) ?></span>
 
             <?php if ($isAdmin): ?>
-                <button type="button" class="btn btn-outline-primary btn-sm app-btn" data-bs-toggle="modal" data-bs-target="#statusTournamentModal">
+                <button type="button" class="btn btn-outline-primary btn-sm app-btn controller-only" data-bs-toggle="modal" data-bs-target="#statusTournamentModal">
                     Ubah Status
                 </button>
             <?php endif; ?>
 
             <button
                 type="button"
-                class="btn btn-outline-secondary btn-sm app-btn js-team-manager-toggle"
-                data-team-manager-toggle="scorePageWorkspace"
+                class="btn btn-outline-secondary btn-sm app-btn js-team-manager-toggle controller-only"
+                data-team-manager-toggle="scoreTeamManagerPanel"
+                aria-controls="scoreTeamManagerPanel"
                 aria-expanded="true"
                 <?= $canManage ? '' : 'disabled' ?>
             >
                 Team Manager
             </button>
 
-            <form action="<?= site_url('pots/store') ?>" method="post" class="m-0">
+            <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm app-btn js-controller-visibility-toggle controller-only"
+                data-hide-text="Hide Controller"
+                data-show-text="Show Controller"
+            >
+                Hide Controller
+            </button>
+
+            <form action="<?= site_url('pots/store') ?>" method="post" class="m-0 controller-only">
                 <?= csrf_field() ?>
                 <input type="hidden" name="tournament_id" value="<?= esc((string) $tournament['id']) ?>">
                 <input type="hidden" name="redirect_to" value="<?= current_url() ?>">
                 <button type="submit" class="btn btn-primary btn-sm app-btn" <?= $canManage ? '' : 'disabled' ?>>Add Pot</button>
             </form>
 
-            <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary btn-sm app-btn">Dashboard</a>
+            <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary btn-sm app-btn controller-only">Dashboard</a>
         </div>
     </div>
 
@@ -79,12 +89,12 @@ $isAdmin = auth()->user()?->inGroup('admin') ?? false;
             </div>
         </div>
 
-        <aside id="scoreTeamManagerPanel" class="score-team-manager-panel">
+        <aside id="scoreTeamManagerPanel" class="score-team-manager-panel" data-open="1">
             <?= view('teams/_manager_workspace', [
                 'managerId'            => 'score-cms-manager',
                 'managerContext'       => 'score',
                 'managerTitle'         => 'Team CMS',
-                'managerDescription'   => 'Panel samping terpisah dari tabel score. Bisa scroll sendiri untuk kelola roster, team, dan pot tanpa mengganggu area scoring.',
+                'managerDescription'   => 'Panel satu halaman khusus untuk kelola team dan roster tanpa mengganggu area scoring di kiri.',
                 'tournaments'          => $tournaments,
                 'pots'                 => $managerPots,
                 'selectedTournamentId' => (int) $tournament['id'],
@@ -92,10 +102,21 @@ $isAdmin = auth()->user()?->inGroup('admin') ?? false;
                 'currentTournamentId'  => (int) $tournament['id'],
                 'currentPotId'         => (int) $currentPotId,
                 'canManage'            => $canManage,
+                'allowUnassigned'      => false,
             ]) ?>
         </aside>
     </div>
 </div>
+
+<button
+    type="button"
+    class="btn btn-outline-light btn-sm app-btn controller-restore-btn js-controller-visibility-toggle"
+    data-hide-text="Hide Controller"
+    data-show-text="Show Controller"
+    hidden
+>
+    Show Controller
+</button>
 
 <?php if ($isAdmin): ?>
     <div class="modal fade" id="statusTournamentModal" tabindex="-1" aria-hidden="true">

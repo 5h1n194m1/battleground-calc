@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\PotModel;
+use App\Models\TeamModel;
 use App\Models\TournamentModel;
 use App\Services\PotOrderService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -10,12 +11,14 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 class PotController extends BaseController
 {
     private PotModel $potModel;
+    private TeamModel $teamModel;
     private TournamentModel $tournamentModel;
     private PotOrderService $potOrderService;
 
     public function __construct()
     {
         $this->potModel        = new PotModel();
+        $this->teamModel       = new TeamModel();
         $this->tournamentModel = new TournamentModel();
         $this->potOrderService = new PotOrderService($this->potModel);
     }
@@ -285,6 +288,98 @@ class PotController extends BaseController
         return redirect()->to(site_url('dashboard'))->with('success', 'Pot berhasil dihapus.');
     }
 
+    public function advanceSelected(int $id)
+    {
+        $isAjax = $this->request->isAJAX();
+        $pot = $this->potModel->find($id);
+
+        if ($pot === null) {
+            throw PageNotFoundException::forPageNotFound('Pot tidak ditemukan.');
+        }
+
+        $tournament = $this->tournamentModel->find((int) $pot['tournament_id']);
+        if ($tournament === null) {
+            return $this->potErrorResponse('Tournament pot tidak ditemukan.', $isAjax);
+        }
+
+        if (! $this->isTournamentEditable($tournament)) {
+            return $this->potErrorResponse('Tournament sudah finished. Team tidak bisa dipindah ke pot baru.', $isAjax);
+        }
+
+        $rawTeamIds = $this->request->getPost('team_ids');
+        $selectedTeamIds = array_values(array_unique(array_map(
+            static fn ($value): int => (int) $value,
+            array_filter(is_array($rawTeamIds) ? $rawTeamIds : [], static fn ($value): bool => ctype_digit((string) $value) && (int) $value > 0)
+        )));
+
+        if ($selectedTeamIds === []) {
+            return $this->potErrorResponse('Pilih minimal satu team yang lolos terlebih dahulu.', $isAjax);
+        }
+
+        $selectedTeams = $this->teamModel
+            ->where('pot_id', $id)
+            ->whereIn('id', $selectedTeamIds)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        if (count($selectedTeams) !== count($selectedTeamIds)) {
+            return $this->potErrorResponse('Sebagian team yang dipilih tidak valid untuk pot ini.', $isAjax);
+        }
+
+        $existingCount = $this->potModel->where('tournament_id', (int) $pot['tournament_id'])->countAllResults();
+        $requestedName = trim((string) ($this->request->getPost('target_pot_name') ?? ''));
+        $targetPotName = $requestedName !== '' ? $requestedName : 'POT ' . ($existingCount + 1);
+
+        $db = db_connect();
+        $targetPotId = 0;
+
+        try {
+            $db->transException(true)->transStart();
+
+            $targetPotId = (int) $this->potModel->insert([
+                'tournament_id' => (int) $pot['tournament_id'],
+                'name'          => $targetPotName,
+                'sort_order'    => $existingCount + 1,
+            ], true);
+            $this->potOrderService->movePot((int) $pot['tournament_id'], $targetPotId, $existingCount + 1);
+
+            foreach ($selectedTeamIds as $index => $teamId) {
+                $this->teamModel->update($teamId, [
+                    'pot_id'     => $targetPotId,
+                    'sort_order' => $index + 1,
+                ]);
+            }
+
+            $this->normalizeTeamSortOrder($id);
+            $this->normalizeTeamSortOrder($targetPotId);
+
+            $db->transComplete();
+        } catch (\Throwable $e) {
+            if ($db->transStatus() !== false) {
+                $db->transRollback();
+            }
+
+            return $this->potErrorResponse('Gagal membuat pot baru dari team yang dipilih.', $isAjax);
+        }
+
+        $message = count($selectedTeamIds) . ' team berhasil dipindahkan ke ' . $targetPotName . '.';
+        $redirectUrl = site_url('pots/' . $targetPotId . '/scores');
+
+        if ($isAjax) {
+            return $this->response->setJSON([
+                'status'        => 'success',
+                'message'       => $message,
+                'redirectUrl'   => $redirectUrl,
+                'potId'         => $targetPotId,
+                'csrfTokenName' => csrf_token(),
+                'csrfHash'      => csrf_hash(),
+            ]);
+        }
+
+        return redirect()->to($redirectUrl)->with('success', $message);
+    }
+
     private function rules(): array
     {
         return [
@@ -306,6 +401,22 @@ class PotController extends BaseController
     private function isTournamentEditable(array $tournament): bool
     {
         return (string) ($tournament['status'] ?? TournamentModel::STATUS_BELUM_MULAI) !== TournamentModel::STATUS_SELESAI;
+    }
+
+    private function normalizeTeamSortOrder(int $potId): void
+    {
+        $teams = $this->teamModel
+            ->where('pot_id', $potId)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->findAll();
+
+        foreach ($teams as $index => $team) {
+            $order = $index + 1;
+            if ((int) ($team['sort_order'] ?? 0) !== $order) {
+                $this->teamModel->update((int) $team['id'], ['sort_order' => $order]);
+            }
+        }
     }
 
     private function potErrorResponse(string $message, bool $isAjax, array $validation = [])
