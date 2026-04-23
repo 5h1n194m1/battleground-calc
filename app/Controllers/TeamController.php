@@ -2,9 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Models\PlayerModel;
 use App\Models\PotModel;
-use App\Models\RegistrationModel;
 use App\Models\ScoreModel;
 use App\Models\TeamMemberModel;
 use App\Models\TeamModel;
@@ -17,8 +15,6 @@ class TeamController extends BaseController
 
     private PotModel $potModel;
     private TeamModel $teamModel;
-    private RegistrationModel $registrationModel;
-    private PlayerModel $playerModel;
     private TeamMemberModel $teamMemberModel;
     private TournamentModel $tournamentModel;
     private ScoreModel $scoreModel;
@@ -27,8 +23,6 @@ class TeamController extends BaseController
     {
         $this->potModel          = new PotModel();
         $this->teamModel         = new TeamModel();
-        $this->registrationModel = new RegistrationModel();
-        $this->playerModel       = new PlayerModel();
         $this->teamMemberModel   = new TeamMemberModel();
         $this->tournamentModel   = new TournamentModel();
         $this->scoreModel        = new ScoreModel();
@@ -37,6 +31,62 @@ class TeamController extends BaseController
     public function index(int $potId)
     {
         return redirect()->to(site_url('pots/' . $potId . '/scores'));
+    }
+
+    public function rosterIndex()
+    {
+        $teams = $this->teamModel
+            ->select('teams.id, teams.name, teams.sort_order, teams.pot_id, pots.name AS pot_name, tournaments.name AS tournament_name, tournaments.status AS tournament_status')
+            ->join('pots', 'pots.id = teams.pot_id', 'left')
+            ->join('tournaments', 'tournaments.id = pots.tournament_id', 'left')
+            ->orderBy('tournaments.name', 'ASC')
+            ->orderBy('pots.sort_order', 'ASC')
+            ->orderBy('teams.sort_order', 'ASC')
+            ->orderBy('teams.name', 'ASC')
+            ->findAll();
+
+        $potOptions = $this->potModel
+            ->select('pots.id, pots.name, pots.sort_order, tournaments.name AS tournament_name, tournaments.status AS tournament_status')
+            ->join('tournaments', 'tournaments.id = pots.tournament_id')
+            ->orderBy('tournaments.name', 'ASC')
+            ->orderBy('pots.sort_order', 'ASC')
+            ->orderBy('pots.name', 'ASC')
+            ->findAll();
+
+        $teamIds = array_map(static fn (array $team): int => (int) $team['id'], $teams);
+        $membersByTeam = $this->memberNamesByTeam($teamIds);
+
+        $rows = array_map(function (array $team) use ($membersByTeam): array {
+            $teamId = (int) $team['id'];
+            $members = array_values(array_filter($membersByTeam[$teamId] ?? [], static fn (string $name): bool => $name !== ''));
+
+            return [
+                'id'              => $teamId,
+                'pot_id'          => $team['pot_id'] !== null ? (int) $team['pot_id'] : null,
+                'name'            => (string) ($team['name'] ?? '-'),
+                'members'         => $members,
+                'member_text'     => $members !== [] ? implode(', ', $members) : '-',
+                'pot_name'        => trim((string) ($team['pot_name'] ?? '')),
+                'tournament_name' => trim((string) ($team['tournament_name'] ?? '')),
+                'scope_label'     => $team['pot_id'] === null
+                    ? 'Tanpa Pot'
+                    : trim((string) ($team['pot_name'] ?? '') . (trim((string) ($team['tournament_name'] ?? '')) !== '' ? ' / ' . trim((string) ($team['tournament_name'] ?? '')) : '')),
+                'is_locked'       => (string) ($team['tournament_status'] ?? '') === TournamentModel::STATUS_SELESAI,
+            ];
+        }, $teams);
+
+        return view('teams/roster_index', [
+            'pageTitle' => 'Daftar Team',
+            'rows'      => $rows,
+            'potOptions'=> array_map(static fn (array $pot): array => [
+                'id'              => (int) $pot['id'],
+                'name'            => (string) ($pot['name'] ?? 'Pot'),
+                'sort_order'      => (int) ($pot['sort_order'] ?? 0),
+                'tournament_name' => (string) ($pot['tournament_name'] ?? 'Tournament'),
+                'status'          => (string) ($pot['tournament_status'] ?? TournamentModel::STATUS_BELUM_MULAI),
+                'label'           => trim((string) ($pot['tournament_name'] ?? 'Tournament') . ' / ' . (string) ($pot['name'] ?? 'Pot')),
+            ], $potOptions),
+        ]);
     }
 
 
@@ -231,14 +281,10 @@ public function managerData()
             'sort_order' => $sortOrder === '' ? ($existingCount + 1) : (int) $sortOrder,
         ], true);
 
-        if ($this->request->getPost('member_text') !== null) {
-            $this->syncMembersFromText($teamId, $memberText);
-        } else {
-            $this->syncMembersFromRegistration($teamId, $name);
-        }
+        $this->syncMembersFromText($teamId, $memberText);
 
         $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
-        $targetUrl = $redirectTo !== '' ? $redirectTo : ($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/registrations'));
+        $targetUrl = $redirectTo !== '' ? $redirectTo : ($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/teams'));
 
         if ($isAjax) {
             return $this->response->setJSON([
@@ -256,7 +302,7 @@ public function managerData()
             return redirect()->to($redirectTo)->with('success', 'Team berhasil ditambahkan.');
         }
 
-        return redirect()->to($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/registrations'))->with('success', 'Team berhasil ditambahkan.');
+        return redirect()->to($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/teams'))->with('success', 'Team berhasil ditambahkan.');
     }
 
     public function update(int $id)
@@ -324,8 +370,6 @@ public function managerData()
 
         if ($this->request->getPost('member_text') !== null) {
             $this->syncMembersFromText($id, (string) ($data['member_text'] ?? ''));
-        } else {
-            $this->syncMembersFromRegistration($id, $finalName);
         }
 
         $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
@@ -345,7 +389,7 @@ public function managerData()
             return redirect()->to($redirectTo)->with('success', 'Team berhasil diperbarui.');
         }
 
-        return redirect()->to($targetPotId !== null ? site_url('pots/' . $targetPotId . '/scores') : site_url('imports/registrations'))->with('success', 'Team berhasil diperbarui.');
+        return redirect()->to($targetPotId !== null ? site_url('pots/' . $targetPotId . '/scores') : site_url('imports/teams'))->with('success', 'Team berhasil diperbarui.');
     }
 
 
@@ -407,6 +451,8 @@ private function destroyTeam(int $id, string $mode)
     }
 
     $db = db_connect();
+    $redirectTo = trim((string) ($this->request->getPost('redirect_to') ?? ''));
+    $fallbackUrl = $redirectTo !== '' ? $redirectTo : ($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/teams'));
 
     try {
         $db->transException(true)->transStart();
@@ -442,7 +488,7 @@ private function destroyTeam(int $id, string $mode)
             ]);
         }
 
-        return redirect()->to($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/registrations'))
+        return redirect()->to($fallbackUrl)
             ->with('error', $deleteMode === 'detach'
                 ? 'Team gagal dilepas dari pot.'
                 : 'Team gagal dihapus. Data score terkait belum bisa dibersihkan.');
@@ -461,37 +507,11 @@ private function destroyTeam(int $id, string $mode)
         ]);
     }
 
-    return redirect()->to($potId !== null ? site_url('pots/' . $potId . '/scores') : site_url('imports/registrations'))
+    return redirect()->to($fallbackUrl)
         ->with('success', $deleteMode === 'detach'
             ? 'Team berhasil dilepas dari pot. Data team tetap tersimpan.'
             : 'Team berhasil dihapus.');
 }
-
-    public function syncMembers(int $id)
-    {
-        $team = $this->teamModel->find($id);
-
-        if ($team === null) {
-            throw PageNotFoundException::forPageNotFound('Team tidak ditemukan.');
-        }
-
-        $pot = $this->potWithTournament((int) $team['pot_id']);
-        if ($pot === null) {
-            return redirect()->back()->with('error', 'Pot team tidak ditemukan.');
-        }
-
-        if (! $this->isPotEditable($pot)) {
-            return redirect()->back()->with('error', 'Tournament sudah finished. Sinkron anggota dinonaktifkan.');
-        }
-
-        $synced = $this->syncMembersFromRegistration($id, (string) $team['name']);
-
-        if (! $synced) {
-            return redirect()->to(site_url('pots/' . $team['pot_id'] . '/scores'))->with('error', 'Belum ada data registrasi yang cocok untuk team ini.');
-        }
-
-        return redirect()->to(site_url('pots/' . $team['pot_id'] . '/scores'))->with('success', 'Anggota team berhasil disinkronkan dari data registrasi.');
-    }
 
     private function rules(): array
     {
@@ -509,50 +529,6 @@ private function destroyTeam(int $id, string $mode)
                 'rules' => 'permit_empty|is_natural',
             ],
         ];
-    }
-
-    private function syncMembersFromRegistration(int $teamId, string $teamName): bool
-    {
-        $normalizedTeamName = $this->normalizeName($teamName);
-
-        if ($normalizedTeamName === '') {
-            return false;
-        }
-
-        $registrations = $this->registrationModel
-            ->orderBy('created_at', 'DESC')
-            ->findAll();
-
-        $matchedRegistration = null;
-
-        foreach ($registrations as $registration) {
-            if ($this->normalizeName((string) $registration['team_name']) === $normalizedTeamName) {
-                $matchedRegistration = $registration;
-                break;
-            }
-        }
-
-        if ($matchedRegistration === null) {
-            return false;
-        }
-
-        $players = $this->playerModel
-            ->where('registration_id', (int) $matchedRegistration['id'])
-            ->orderBy('id', 'ASC')
-            ->findAll();
-
-        $this->teamMemberModel->where('team_id', $teamId)->delete();
-
-        foreach (array_slice($players, 0, self::MAX_MEMBERS) as $player) {
-            $this->teamMemberModel->insert([
-                'team_id'         => $teamId,
-                'registration_id' => (int) $matchedRegistration['id'],
-                'player_name'     => (string) $player['player_name'],
-                'player_role'     => $player['player_role'] ?: null,
-            ]);
-        }
-
-        return true;
     }
 
     private function syncMembersFromText(int $teamId, string $memberText): void
@@ -579,10 +555,9 @@ private function destroyTeam(int $id, string $mode)
         $this->teamMemberModel->where('team_id', $teamId)->delete();
         foreach ($members as $memberName) {
             $this->teamMemberModel->insert([
-                'team_id'         => $teamId,
-                'registration_id' => null,
-                'player_name'     => $memberName,
-                'player_role'     => null,
+                'team_id'     => $teamId,
+                'player_name' => $memberName,
+                'player_role' => null,
             ]);
         }
     }

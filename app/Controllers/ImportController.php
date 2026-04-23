@@ -2,9 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Models\PlayerModel;
 use App\Models\PotModel;
-use App\Models\RegistrationModel;
 use App\Models\TeamMemberModel;
 use App\Models\TeamModel;
 use App\Models\TournamentModel;
@@ -17,8 +15,6 @@ class ImportController extends BaseController
 {
     private const MAX_MEMBERS = 6;
 
-    private RegistrationModel $registrationModel;
-    private PlayerModel $playerModel;
     private TournamentModel $tournamentModel;
     private PotModel $potModel;
     private TeamModel $teamModel;
@@ -26,15 +22,13 @@ class ImportController extends BaseController
 
     public function __construct()
     {
-        $this->registrationModel = new RegistrationModel();
-        $this->playerModel       = new PlayerModel();
         $this->tournamentModel   = new TournamentModel();
         $this->potModel          = new PotModel();
         $this->teamModel         = new TeamModel();
         $this->teamMemberModel   = new TeamMemberModel();
     }
 
-    public function registrations(): string
+    public function teams(): string
     {
         $tournaments = $this->tournamentModel->orderBy('created_at', 'DESC')->findAll();
 
@@ -53,9 +47,8 @@ class ImportController extends BaseController
 
         $selectedPotId = (int) ($this->request->getGet('pot_id') ?? 0);
 
-        return view('imports/registrations', [
-            'pageTitle'            => 'Import Registrations',
-            'recentRegistrations'  => $this->recentRegistrations(),
+        return view('imports/teams', [
+            'pageTitle'            => 'Import Team',
             'tournaments'          => $tournaments,
             'pots'                 => $pots,
             'selectedTournamentId' => $selectedTournamentId,
@@ -63,12 +56,12 @@ class ImportController extends BaseController
         ]);
     }
 
-    public function storeRegistrations()
+    public function storeTeams()
     {
         if (! $this->validate([
-            'registration_file' => [
-                'label' => 'File registrasi',
-                'rules' => 'uploaded[registration_file]|ext_in[registration_file,csv,txt,xlsx]|max_size[registration_file,8192]',
+            'team_file' => [
+                'label' => 'File import team',
+                'rules' => 'uploaded[team_file]|ext_in[team_file,csv,txt,xlsx]|max_size[team_file,8192]',
             ],
         ])) {
             return redirect()->back()
@@ -77,7 +70,7 @@ class ImportController extends BaseController
                 ->with('validation', $this->validator->getErrors());
         }
 
-        $file = $this->request->getFile('registration_file');
+        $file = $this->request->getFile('team_file');
         $importMode = (string) $this->request->getPost('import_mode');
         if (! in_array($importMode, ['global', 'with_pot'], true)) {
             $importMode = 'global';
@@ -98,58 +91,45 @@ class ImportController extends BaseController
         }
 
         try {
-            $rows = $this->parseRegistrationFile($file);
+            $rows = $this->parseImportFile($file);
         } catch (RuntimeException $exception) {
             return redirect()->back()->withInput()->with('error', $exception->getMessage());
         }
 
         if ($rows === []) {
-            return redirect()->back()->withInput()->with('error', 'Tidak ada data registrasi yang bisa diimport.');
+            return redirect()->back()->withInput()->with('error', 'Tidak ada data team yang bisa diimport.');
         }
 
         $db = db_connect();
         $db->transStart();
 
-        $existingTeamsByPot = [];
-        if ($importMode === 'with_pot' && $selectedPotId > 0) {
-            $existingTeams = $this->teamModel
-                ->where('pot_id', $selectedPotId)
+        $targetPotId = $importMode === 'with_pot' && $selectedPotId > 0 ? $selectedPotId : null;
+        $existingTeamsByScope = [];
+        $existingTeams = $targetPotId !== null
+            ? $this->teamModel
+                ->where('pot_id', $targetPotId)
+                ->orderBy('sort_order', 'ASC')
+                ->orderBy('name', 'ASC')
+                ->findAll()
+            : $this->teamModel
+                ->where('pot_id IS NULL', null, false)
                 ->orderBy('sort_order', 'ASC')
                 ->orderBy('name', 'ASC')
                 ->findAll();
 
-            foreach ($existingTeams as $team) {
-                $existingTeamsByPot[$this->normalizeName((string) $team['name'])] = $team;
-            }
+        foreach ($existingTeams as $team) {
+            $existingTeamsByScope[$this->normalizeName((string) $team['name'])] = $team;
         }
 
         foreach ($rows as $row) {
-            $registrationId = (int) $this->registrationModel->insert([
-                'team_name'   => $row['team_name'],
-                'leader_name' => $row['leader_name'],
-                'whatsapp'    => $row['whatsapp'],
-                'email'       => $row['email'],
-                'notes'       => $row['notes'] !== '' ? $row['notes'] : null,
-            ], true);
-
-            foreach ($row['players'] as $player) {
-                $this->playerModel->insert([
-                    'registration_id' => $registrationId,
-                    'player_name'     => $player['player_name'],
-                    'player_role'     => $player['player_role'] !== '' ? $player['player_role'] : null,
-                ]);
-            }
-
-            if ($importMode === 'with_pot' && $selectedPotId > 0) {
-                $teamId = $this->upsertTeamIntoPot($selectedPotId, $row, $existingTeamsByPot);
-                $this->replaceTeamMembers($teamId, $row['players']);
-            }
+            $teamId = $this->upsertImportedTeam($targetPotId, $row, $existingTeamsByScope);
+            $this->replaceTeamMembers($teamId, $row['players']);
         }
 
         $db->transComplete();
 
         if (! $db->transStatus()) {
-            return redirect()->back()->withInput()->with('error', 'Import registrasi gagal disimpan ke database.');
+            return redirect()->back()->withInput()->with('error', 'Import team gagal disimpan ke database.');
         }
 
         $query = array_filter([
@@ -157,17 +137,19 @@ class ImportController extends BaseController
             'pot_id'        => $selectedPotId > 0 ? $selectedPotId : null,
         ], static fn ($value) => $value !== null);
 
-        $targetUrl = site_url('imports/registrations');
+        $targetUrl = site_url('imports/teams');
         if ($query !== []) {
             $targetUrl .= '?' . http_build_query($query);
         }
 
-        $modeLabel = $importMode === 'with_pot' ? ' ke registrasi + team pot' : ' ke registrasi';
+        $modeLabel = $importMode === 'with_pot'
+            ? ' ke team pot terpilih'
+            : ' ke team sistem tanpa pot';
 
-        return redirect()->to($targetUrl)->with('success', count($rows) . ' data berhasil diimport' . $modeLabel . '.');
+        return redirect()->to($targetUrl)->with('success', count($rows) . ' team berhasil diimport' . $modeLabel . '.');
     }
 
-    private function parseRegistrationFile(UploadedFile $file): array
+    private function parseImportFile(UploadedFile $file): array
     {
         $extension = strtolower($file->getExtension() ?: pathinfo($file->getName(), PATHINFO_EXTENSION));
         $path = $file->getTempName();
@@ -529,25 +511,31 @@ class ImportController extends BaseController
         return trim($header, '_');
     }
 
-    private function upsertTeamIntoPot(int $potId, array $row, array &$existingTeamsByPot): int
+    private function upsertImportedTeam(?int $potId, array $row, array &$existingTeamsByScope): int
     {
         $normalizedName = $this->normalizeName($row['team_name']);
-        $team = $existingTeamsByPot[$normalizedName] ?? null;
+        $team = $existingTeamsByScope[$normalizedName] ?? null;
 
         if ($team !== null) {
             $teamId = (int) $team['id'];
-            $this->teamModel->update($teamId, ['name' => $row['team_name']]);
+            $this->teamModel->update($teamId, [
+                'pot_id' => $potId,
+                'name'   => $row['team_name'],
+            ]);
             return $teamId;
         }
 
-        $nextSortOrder = $this->teamModel->where('pot_id', $potId)->countAllResults() + 1;
+        $nextSortOrder = $potId !== null
+            ? $this->teamModel->where('pot_id', $potId)->countAllResults() + 1
+            : $this->teamModel->where('pot_id IS NULL', null, false)->countAllResults() + 1;
+
         $teamId = (int) $this->teamModel->insert([
             'pot_id'     => $potId,
             'name'       => $row['team_name'],
             'sort_order' => $nextSortOrder,
         ], true);
 
-        $existingTeamsByPot[$normalizedName] = [
+        $existingTeamsByScope[$normalizedName] = [
             'id'        => $teamId,
             'pot_id'    => $potId,
             'name'      => $row['team_name'],
@@ -575,10 +563,9 @@ class ImportController extends BaseController
 
             $seen[$normalized] = true;
             $this->teamMemberModel->insert([
-                'team_id'         => $teamId,
-                'registration_id' => null,
-                'player_name'     => $playerName,
-                'player_role'     => ! empty($player['player_role']) ? (string) $player['player_role'] : null,
+                'team_id'     => $teamId,
+                'player_name' => $playerName,
+                'player_role' => ! empty($player['player_role']) ? (string) $player['player_role'] : null,
             ]);
         }
     }
@@ -587,12 +574,5 @@ class ImportController extends BaseController
     {
         $value = strtolower(trim($value));
         return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
-    }
-
-    private function recentRegistrations(): array
-    {
-        return $this->registrationModel
-            ->orderBy('created_at', 'DESC')
-            ->findAll(10);
     }
 }

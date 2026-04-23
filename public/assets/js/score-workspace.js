@@ -1,3 +1,5 @@
+// Konteks: Mengubah logika toggle controller menjadi hide dan show terpisah.
+// Perubahan: Menambahkan fungsi hideController dan showController, bind event ke js-hide-controller dan js-show-controller.
 (function () {
     const app = window.BGApp || {};
 
@@ -80,6 +82,64 @@
         } catch (error) {
             // ignore
         }
+    };
+
+    const bindScoreTextZoomControls = () => {
+        const host = document.getElementById('scorePageHost');
+        if (!host) {
+            return;
+        }
+
+        const buttons = qsa('.js-score-text-zoom', host);
+        if (!buttons.length) {
+            return;
+        }
+
+        const storageKey = 'bgcalc-score-text-scale';
+        const clampScale = (value) => Math.min(1.35, Math.max(0.9, value));
+        const applyScale = (value) => {
+            const safeValue = clampScale(value);
+            host.style.setProperty('--score-page-scale', String(safeValue));
+
+            try {
+                localStorage.setItem(storageKey, String(safeValue));
+            } catch (error) {
+                // ignore
+            }
+        };
+
+        let initialScale = 1;
+        try {
+            initialScale = clampScale(Number.parseFloat(localStorage.getItem(storageKey) || '1') || 1);
+        } catch (error) {
+            initialScale = 1;
+        }
+
+        applyScale(initialScale);
+
+        buttons.forEach((button) => {
+            if (button.dataset.zoomBound === '1') {
+                return;
+            }
+
+            button.dataset.zoomBound = '1';
+            button.addEventListener('click', () => {
+                const currentScale = clampScale(Number.parseFloat(host.style.getPropertyValue('--score-page-scale') || '1') || 1);
+                const action = button.dataset.zoomAction || '';
+
+                if (action === 'increase') {
+                    applyScale(currentScale + 0.08);
+                    return;
+                }
+
+                if (action === 'decrease') {
+                    applyScale(currentScale - 0.08);
+                    return;
+                }
+
+                applyScale(1);
+            });
+        });
     };
 
     const getPlacement = (placementMap, rank) => {
@@ -250,6 +310,7 @@
         }
 
         clearTimeout(form._saveTimer);
+        form.dataset.saveQueued = '1';
         setStatus(form, 'dirty', '');
         form._saveTimer = window.setTimeout(saver, 450);
     };
@@ -1302,11 +1363,11 @@
                 const tempKey = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                 const row = createTempTeamRow(form, tempKey, qsa('tr[data-team-row]', tbody).length + 1);
                 tbody.appendChild(row);
-                sortRowsByTotal(table);
+                updateRowNumbers(table);
                 bindFormInputs(form);
                 bindLookupToolbars();
                 updateAllRows(table, JSON.parse(form.dataset.placementMap || '{}'));
-                sortRowsByTotal(table);
+                updateRowNumbers(table);
 
                 const emptyState = qs('.js-pot-empty-state', form);
                 if (emptyState) {
@@ -1317,7 +1378,7 @@
 
                 qs('.js-remove-temp-team', row)?.addEventListener('click', () => {
                     row.remove();
-                    sortRowsByTotal(table);
+                    updateRowNumbers(table);
                     const hasRows = qsa('tr[data-team-row]', tbody).length > 0;
                     if (!hasRows && emptyState) {
                         emptyState.hidden = false;
@@ -1651,21 +1712,49 @@
             return;
         }
 
+        const workspace = document.getElementById('scorePageWorkspace');
+        const hideButtons = qsa('.js-hide-controller');
+        const showButtons = qsa('.js-show-controller');
         const restoreButtons = qsa('.controller-restore-btn');
-        const toggleState = (hidden) => {
-            scorePage.classList.toggle('is-controller-hidden', hidden);
-            restoreButtons.forEach((button) => {
-                button.hidden = !hidden;
+        const closeManagerPanel = () => {
+            if (!workspace) {
+                return;
+            }
+
+            workspace.classList.remove('is-manager-open');
+
+            qsa('.score-team-manager-panel', workspace).forEach((drawer) => {
+                drawer.hidden = true;
+                drawer.dataset.open = '0';
             });
 
-            qsa('.js-controller-visibility-toggle').forEach((button) => {
-                const showText = button.dataset.showText || 'Show Controller';
-                const hideText = button.dataset.hideText || 'Hide Controller';
-                button.textContent = hidden ? showText : hideText;
+            qsa('[data-team-manager-toggle]', scorePage).forEach((toggle) => {
+                toggle.setAttribute('aria-expanded', 'false');
             });
+        };
+
+        const hideController = () => {
+            closeManagerPanel();
+            scorePage.classList.add('is-controller-hidden');
+            hideButtons.forEach((button) => button.hidden = true);
+            showButtons.forEach((button) => button.hidden = false);
+            restoreButtons.forEach((button) => button.hidden = false);
 
             try {
-                sessionStorage.setItem('bgcalc-hide-controllers', hidden ? '1' : '0');
+                sessionStorage.setItem('bgcalc-hide-controllers', '1');
+            } catch (error) {
+                // ignore
+            }
+        };
+
+        const showController = () => {
+            scorePage.classList.remove('is-controller-hidden');
+            hideButtons.forEach((button) => button.hidden = false);
+            showButtons.forEach((button) => button.hidden = true);
+            restoreButtons.forEach((button) => button.hidden = true);
+
+            try {
+                sessionStorage.setItem('bgcalc-hide-controllers', '0');
             } catch (error) {
                 // ignore
             }
@@ -1678,17 +1767,34 @@
             initialHidden = false;
         }
 
-        toggleState(initialHidden);
+        if (initialHidden) {
+            hideController();
+        } else {
+            showController();
+        }
 
-        qsa('.js-controller-visibility-toggle').forEach((button) => {
-            if (button.dataset.controllerToggleBound === '1') {
+        hideButtons.forEach((button) => {
+            if (button.dataset.hideBound === '1') {
                 return;
             }
+            button.dataset.hideBound = '1';
+            button.addEventListener('click', hideController);
+        });
 
-            button.dataset.controllerToggleBound = '1';
-            button.addEventListener('click', () => {
-                toggleState(!scorePage.classList.contains('is-controller-hidden'));
-            });
+        showButtons.forEach((button) => {
+            if (button.dataset.showBound === '1') {
+                return;
+            }
+            button.dataset.showBound = '1';
+            button.addEventListener('click', showController);
+        });
+
+        restoreButtons.forEach((button) => {
+            if (button.dataset.restoreBound === '1') {
+                return;
+            }
+            button.dataset.restoreBound = '1';
+            button.addEventListener('click', showController);
         });
     };
 
@@ -1704,6 +1810,7 @@
             }
 
             form.dataset.saving = '1';
+            form.dataset.saveQueued = '0';
             setStatus(form, 'saving', '');
 
             try {
@@ -1721,6 +1828,11 @@
                 setStatus(form, 'error', error.message || 'Gagal menyimpan perubahan.');
             } finally {
                 form.dataset.saving = '0';
+
+                if (form.dataset.saveQueued === '1') {
+                    clearTimeout(form._saveTimer);
+                    form._saveTimer = window.setTimeout(saveNow, 120);
+                }
             }
         };
 
@@ -1813,9 +1925,6 @@
                 const row = input.closest('tr[data-team-row]');
                 if (row) {
                     updateRowTotal(row, placementMap);
-                    if (table) {
-                        sortRowsByTotal(table);
-                    }
                 }
 
                 if (input.classList.contains('team-name-input') || input.classList.contains('team-members-inline')) {
@@ -1834,7 +1943,18 @@
 
         const addGameButton = qs('.js-add-game', form.closest('.pot-module-card') || document);
         const removeGameButton = qs('.js-remove-game', form.closest('.pot-module-card') || document);
+        const sortButton = qs('.js-sort-standings', form.closest('.pot-module-card') || document);
         const gameCountInput = qs('.js-game-count', form);
+
+        if (table && sortButton && sortButton.dataset.sortBound !== '1') {
+            sortButton.dataset.sortBound = '1';
+
+            sortButton.addEventListener('click', () => {
+                updateAllRows(table, placementMap);
+                sortRowsByTotal(table);
+                setStatus(form, 'saved', 'Klasemen sudah diurutkan berdasarkan total skor.');
+            });
+        }
 
         if (table && gameCountInput && addGameButton && addGameButton.dataset.gameBound !== '1') {
             addGameButton.dataset.gameBound = '1';
@@ -1874,7 +1994,7 @@
                 updateCompactVars(form);
                 bindFormInputs(form);
                 updateAllRows(table, placementMap);
-                sortRowsByTotal(table);
+                updateRowNumbers(table);
                 scheduleSave(form, saveNow);
             });
         }
@@ -1893,14 +2013,14 @@
                 gameCountInput.value = String(currentGameNo - 1);
                 updateCompactVars(form);
                 updateAllRows(table, placementMap);
-                sortRowsByTotal(table);
+                updateRowNumbers(table);
                 scheduleSave(form, saveNow);
             });
         }
 
         if (table) {
             updateAllRows(table, placementMap);
-            sortRowsByTotal(table);
+            updateRowNumbers(table);
         }
     };
 
@@ -1915,6 +2035,7 @@
         bindTeamManagerWorkspace();
         bindManagerDrawer();
         bindControllerVisibilityToggle();
+        bindScoreTextZoomControls();
         restoreScrollAfterDelete();
     };
 

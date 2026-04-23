@@ -22,11 +22,6 @@ class CreateTeamMembersTable extends Migration
                 'type'     => 'INT',
                 'unsigned' => true,
             ],
-            'registration_id' => [
-                'type'     => 'INT',
-                'unsigned' => true,
-                'null'     => true,
-            ],
             'player_name' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 150,
@@ -48,9 +43,7 @@ class CreateTeamMembersTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey('team_id');
-        $this->forge->addKey('registration_id');
         $this->forge->addForeignKey('team_id', 'teams', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('registration_id', 'registrations', 'id', 'SET NULL', 'CASCADE');
         $this->forge->createTable('team_members', true);
     }
 

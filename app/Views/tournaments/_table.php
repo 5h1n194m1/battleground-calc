@@ -1,7 +1,7 @@
 <div class="card stat-card">
     <div class="card-body p-0">
         <?php if ($tournaments === []): ?>
-            <div class="p-4 text-center text-muted">Belum ada tournament. Tambahkan tournament pertama untuk mulai.</div>
+            <div class="p-4 text-center text-muted">Belum ada tournament.</div>
         <?php else: ?>
             <div class="table-responsive">
                 <table class="table table-striped align-middle mb-0">
@@ -34,9 +34,7 @@
                                 <td><?= esc(date('d M Y H:i', strtotime((string) $tournament['created_at']))) ?></td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
-                                        <a href="<?= site_url('tournaments/' . $tournament['id'] . '/pots') ?>" class="btn btn-sm btn-outline-primary">
-                                            <?= $status === 'selesai' ? 'Lihat' : 'Kelola' ?>
-                                        </a>
+                                        <a href="<?= site_url('tournaments/' . $tournament['id'] . '/pots') ?>" class="btn btn-sm btn-outline-primary">Buka</a>
                                         <a href="<?= site_url('tournaments/edit/' . $tournament['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                         <form action="<?= site_url('tournaments/delete/' . $tournament['id']) ?>" method="post" onsubmit="return confirm('Hapus tournament ini beserta seluruh data turunannya?');">
                                             <?= csrf_field() ?>

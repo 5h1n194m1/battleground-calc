@@ -45,7 +45,7 @@ class TournamentController extends BaseController
 
     public function store()
     {
-        $data = $this->request->getPost(['name', 'status']);
+        $data = $this->request->getPost(['name', 'status', 'redirect_to']);
         $isAjax = $this->request->isAJAX();
 
         if (! $this->validateData($data, $this->rules())) {
@@ -112,13 +112,16 @@ class TournamentController extends BaseController
             'status' => (string) $data['status'],
         ]);
 
+        $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
+
         if ($isAjax) {
             return $this->response->setJSON($this->jsonPayload('Tournament berhasil diperbarui.', [
                 'status' => 'success',
+                'redirectUrl' => $redirectTo !== '' ? $redirectTo : site_url('tournaments'),
             ]));
         }
 
-        return redirect()->to(site_url('tournaments'))->with('success', 'Tournament berhasil diperbarui.');
+        return redirect()->to($redirectTo !== '' ? $redirectTo : site_url('tournaments'))->with('success', 'Tournament berhasil diperbarui.');
     }
 
     public function updateStatus(int $id)
@@ -168,6 +171,8 @@ class TournamentController extends BaseController
     {
         $isAjax = $this->request->isAJAX();
         $tournament = $this->tournamentModel->find($id);
+        $redirectTo = trim((string) ($this->request->getPost('redirect_to') ?? ''));
+        $targetUrl = $redirectTo !== '' ? $redirectTo : site_url('tournaments');
 
         if ($tournament === null) {
             if ($isAjax) {
@@ -184,11 +189,11 @@ class TournamentController extends BaseController
         if ($isAjax) {
             return $this->response->setJSON($this->jsonPayload('Tournament berhasil dihapus.', [
                 'status'      => 'success',
-                'redirectUrl' => site_url('dashboard'),
+                'redirectUrl' => $targetUrl,
             ]));
         }
 
-        return redirect()->to(site_url('tournaments'))->with('success', 'Tournament berhasil dihapus.');
+        return redirect()->to($targetUrl)->with('success', 'Tournament berhasil dihapus.');
     }
 
     private function rules(): array

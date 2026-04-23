@@ -2,7 +2,7 @@
 $managerId = $managerId ?? 'default';
 $managerContext = $managerContext ?? 'import';
 $managerTitle = $managerTitle ?? 'Team Manager';
-$managerDescription = $managerDescription ?? 'Kelola team dan anggota secara manual.';
+$managerDescription = $managerDescription ?? '';
 $selectedTournamentId = (int) ($selectedTournamentId ?? 0);
 $selectedPotId = (int) ($selectedPotId ?? 0);
 $tournaments = $tournaments ?? [];
@@ -30,13 +30,12 @@ $allowUnassigned = $allowUnassigned ?? false;
 >
     <div class="team-manager-card team-manager-cms-card">
         <div class="team-manager-head">
-            <div>
-                <h2 class="team-manager-title"><?= esc($managerTitle) ?></h2>
-                <div class="team-manager-subtitle"><?= esc($managerDescription) ?></div>
+            <div class="team-manager-head-copy">
+                <div class="team-manager-title"><?= esc($managerTitle) ?></div>
+                <?php if (trim((string) $managerDescription) !== ''): ?>
+                    <p class="team-manager-subtitle"><?= esc($managerDescription) ?></p>
+                <?php endif; ?>
             </div>
-            <?php if ($managerContext === 'score'): ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm app-btn js-team-manager-close" data-team-manager-close>Hide</button>
-            <?php endif; ?>
         </div>
 
         <div class="team-manager-toolbar-row">
@@ -55,7 +54,7 @@ $allowUnassigned = $allowUnassigned ?? false;
                 <label class="form-label">Pot</label>
                 <select class="form-select form-select-sm js-manager-pot" <?= $canManage ? '' : 'disabled' ?>>
                     <?php if ($allowUnassigned): ?>
-                        <option value="" <?= $selectedPotId <= 0 ? 'selected' : '' ?>>Tanpa Pot (database only)</option>
+                        <option value="" <?= $selectedPotId <= 0 ? 'selected' : '' ?>>Tanpa Pot</option>
                     <?php endif; ?>
                     <?php foreach ($pots as $pot): ?>
                         <option value="<?= esc((string) $pot['id']) ?>" <?= (int) $pot['id'] === $selectedPotId ? 'selected' : '' ?>>
@@ -68,9 +67,9 @@ $allowUnassigned = $allowUnassigned ?? false;
 
         <div class="team-manager-toolbar-row team-manager-toolbar-row-search">
             <div class="team-manager-filter team-manager-filter-full">
-                <label class="form-label">Cari Team / Member</label>
+                <label class="form-label">Cari</label>
                 <div class="team-manager-combobox-shell">
-                    <input type="text" class="form-control form-control-sm js-manager-search" placeholder="Cari nama team atau member..." autocomplete="off">
+                    <input type="text" class="form-control form-control-sm js-manager-search" placeholder="Cari..." autocomplete="off">
                     <div class="team-manager-combobox js-manager-search-combobox" hidden></div>
                 </div>
             </div>
@@ -79,27 +78,27 @@ $allowUnassigned = $allowUnassigned ?? false;
         <div class="team-manager-summary-bar">
             <span class="team-manager-count js-manager-count">0 team</span>
             <span class="team-manager-summary-sep">•</span>
-            <span class="team-manager-current js-manager-current-scope">Pot aktif</span>
+            <span class="team-manager-current js-manager-current-scope">Pot</span>
             <span class="team-manager-summary-sep">|</span>
-            <span class="team-manager-status js-manager-status" data-state="idle">Pilih pot untuk mulai.</span>
+            <span class="team-manager-status js-manager-status" data-state="idle">Siap</span>
         </div>
 
         <div class="team-manager-body team-manager-cms-body">
             <div class="team-manager-list-shell">
                 <div class="team-manager-list-head">
-                    <strong>Daftar Team</strong>
-                    <button type="button" class="btn btn-outline-secondary btn-sm app-btn js-manager-reset">Team Baru</button>
+                    <strong>List</strong>
+                    <button type="button" class="btn btn-outline-secondary btn-sm app-btn js-manager-reset">Baru</button>
                 </div>
 
                 <div class="team-manager-list js-manager-list">
-                    <div class="team-manager-empty">Belum ada team di pot ini.</div>
+                    <div class="team-manager-empty">Belum ada team.</div>
                 </div>
             </div>
 
             <div class="team-manager-form-shell">
                 <div class="team-manager-form-head">
-                    <strong>Editor Team</strong>
-                    <span class="team-manager-help js-manager-mode">Mode tambah team baru</span>
+                    <strong>Editor</strong>
+                    <span class="team-manager-help js-manager-mode">Baru</span>
                 </div>
 
                 <form class="team-manager-form js-manager-form" novalidate>
@@ -111,17 +110,15 @@ $allowUnassigned = $allowUnassigned ?? false;
                             <input type="text" class="form-control form-control-sm js-manager-team-name" placeholder="Kosongkan untuk auto Team baru" autocomplete="off" <?= $canManage ? '' : 'disabled' ?>>
                             <div class="team-manager-combobox js-manager-name-combobox" hidden></div>
                         </div>
-                        <div class="team-manager-help">Boleh dikosongkan saat tambah team. Sistem akan memberi nama default otomatis.</div>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label">Anggota Team</label>
                         <textarea class="form-control form-control-sm team-manager-member-input js-manager-member-text" rows="5" placeholder="Nick1, Nick2, Nick3, Nick4, Nick5, Nick6" <?= $canManage ? '' : 'disabled' ?>></textarea>
-                        <div class="team-manager-help">Pisahkan anggota dengan koma. Maksimal 6 member.</div>
                     </div>
 
                     <div class="team-manager-actions">
-                        <button type="button" class="btn btn-primary btn-sm app-btn js-manager-submit" <?= $canManage ? '' : 'disabled' ?>>Tambah Team</button>
+                        <button type="button" class="btn btn-primary btn-sm app-btn js-manager-submit" <?= $canManage ? '' : 'disabled' ?>>Simpan</button>
                         <button type="button" class="btn btn-outline-secondary btn-sm app-btn js-manager-reset" <?= $canManage ? '' : 'disabled' ?>>Reset</button>
                         <button type="button" class="btn btn-outline-danger btn-sm app-btn js-manager-delete" <?= $canManage ? '' : 'disabled' ?>>Hapus Team</button>
                     </div>

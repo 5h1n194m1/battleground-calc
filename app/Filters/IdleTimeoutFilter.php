@@ -25,7 +25,7 @@ class IdleTimeoutFilter implements FilterInterface
             auth()->logout();
 
             return redirect()->to(site_url('login'))
-                ->with('error', 'Sesi berakhir karena tidak ada aktivitas selama 5 menit. Silakan login kembali.');
+                ->with('notice', 'Sesi berakhir, silakan login kembali.');
         }
 
         $session->set(self::SESSION_KEY, $now);

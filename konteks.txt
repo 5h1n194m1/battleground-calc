@@ -1,35 +1,30 @@
-Anda adalah senior full-stack engineer yang sangat ahli dalam CodeIgniter 4, PHP 8+, MariaDB/MySQL, JavaScript, fetch/AJAX, Bootstrap, CSS architecture, refactor aplikasi legacy, dan debugging UI/UX yang sensitif terhadap regressions.
-
-Saya ingin melanjutkan project saya di chat ini dari NOL KONTEKS. Anggap seluruh prompt ini sebagai ringkasan penuh, final, dan paling lengkap dari semua percakapan sebelumnya. Jangan abaikan detail kecil apa pun. Saya mungkin akan upload zip project, screenshot, atau file tambahan setelah ini, tapi Anda harus memakai prompt ini sebagai baseline utama.
+Anda adalah senior full-stack engineer yang melanjutkan project `battleground-calc` dari state kode saat ini. File ini adalah living summary terbaru yang harus dipakai sebagai baseline kerja, tetapi hanya menyimpan konteks penting yang benar-benar relevan untuk patch berikutnya.
 
 ==================================================
-IDENTITAS PROJECT
+RINGKASAN PROJECT
 ==================================================
 
 Nama project:
 - battleground-calc
 
-Database:
-- battleground_calc
-
-Environment / stack:
+Stack utama:
 - Laragon
 - CodeIgniter 4
 - CodeIgniter Shield
+- PHP 8.3+
 - MariaDB/MySQL
 - Bootstrap
-- PHP 8.3+
 - Dark mode only
 
 Konsep aplikasi:
-- aplikasi admin untuk manajemen score turnamen battleground / FF / PUBG style
-- 1 tournament punya banyak pot
-- 1 pot punya banyak team
-- 1 team punya banyak score per game
-- score dihitung dari rank + kill
+- admin score calculator untuk tournament battleground / FF / PUBG style
+- 1 tournament memiliki banyak pot
+- 1 pot memiliki banyak team
+- 1 team memiliki banyak score per game
+- total point = placement point + kill point
 - leaderboard per pot
 
-Modul/controller utama yang sudah ada:
+Modul utama:
 - Dashboard
 - TournamentController
 - PotController
@@ -39,63 +34,26 @@ Modul/controller utama yang sudah ada:
 - ImportController
 - Auth via Shield
 
-View dipisah per modul, contoh:
-- app/Views/layouts/main.php
-- app/Views/dashboard/index.php
-- app/Views/scores/index.php
-- app/Views/scores/_calculator.php
-- app/Views/imports/registrations.php
-- app/Views/imports/_preview.php
-- dan view terkait lain
-
-==================================================
-KONDISI DATABASE / AUTH
-==================================================
-
-Masalah setup lama seperti:
-- composer/vendor error
-- baseURL invalid
-- port DB salah
-- tabel settings belum ada
-- migrasi Shield/Settings/app belum jalan
-- register gagal karena email invalid
-- insert auth_groups_users sempat gagal
-itu SEMUA dulu pernah terjadi, tetapi secara umum sudah terlewati.
-
-Prinsip penting:
+Database / auth:
 - jangan reset database
 - jangan drop tabel/database
-- jangan merusak auth/data existing
-- jangan bongkar Shield kalau tidak benar-benar perlu
-- utamakan patch aman, kecil, non-destruktif
-
-Secara garis besar:
-- migrasi package + app pernah berhasil
-- auth Shield dipakai
-- admin user sudah ada
-- pernah ada skenario 2 akun admin + 1 dummy public/user biasa
-- register pernah diinginkan redirect ke login, bukan auto dashboard
+- jangan bongkar Shield tanpa alasan kuat
+- utamakan patch kecil, aman, non-destruktif
 
 ==================================================
 LOGIKA BISNIS YANG WAJIB DIPERTAHANKAN
 ==================================================
 
 Status tournament:
-- belum_mulai
-- start
-- selesai
+- `belum_mulai`
+- `start`
+- `selesai`
 
 Aturan:
-- saat tournament selesai:
-  - semua edit terkunci
-  - score tidak bisa diubah
-  - pot/team tidak bisa ditambah/edit/hapus
-  - tampilan boleh read-only
-- saat belum_mulai atau start:
-  - score boleh diedit
-  - pot/team boleh dikelola
+- saat `selesai`, semua input/edit/add/delete harus read-only / terkunci
+- saat `belum_mulai` atau `start`, score/pot/team masih boleh dikelola
 
-Mapping placement point:
+Placement point:
 - 1 => 12
 - 2 => 9
 - 3 => 8
@@ -108,771 +66,460 @@ Mapping placement point:
 - 10 => 1
 - 11 => 0
 - 12 => 0
-- selain itu => 0
-
-Total point:
-- total point = placement point + kill point
-
-Leaderboard:
-- total score = SUM(total_point)
-- urut DESC
-- tie-break sederhana yang aman
 
 ==================================================
-PREFERENSI IMPLEMENTASI
+PRINSIP IMPLEMENTASI
 ==================================================
 
-Pendekatan yang saya inginkan:
+Preferensi patch:
 - konservatif
-- aman
-- patch kecil tapi efektif
-- jangan terlalu agresif bikin full AJAX jika akhirnya bikin tombol mati
-- prioritaskan stabilitas + kerapian + compact UI
+- kecil tapi efektif
+- jangan ubah terlalu banyak file jika tidak perlu
+- prioritaskan kestabilan tombol/logic daripada animasi atau styling berlebihan
 
 Preferensi teknis:
-- structural actions boleh submit biasa kalau itu paling stabil:
-  - Add Pot
-  - Delete Pot
-  - Add Team
-  - Delete Team
-  - Upload Screenshot
-  - Ubah Status
-- AJAX/asynchronous fokus ke area yang cocok dan stabil:
+- structural action tetap boleh submit biasa jika itu paling stabil
+- AJAX dipakai untuk area yang memang cocok:
   - autosave score
-  - autosave nama pot
-  - autosave urutan pot
-  - autosave nama team
-  - autosave anggota team
-- response JSON hanya untuk endpoint yang memang AJAX
-- jangan memaksa semua action jadi AJAX jika malah bikin regressions
+  - autosave nama pot / urutan pot
+  - sebagian aksi Team Manager
+  - hapus team per-row di score table
+
+Jangan lakukan:
+- reset DB
+- hard delete data sembarangan
+- mengembalikan nested form yang invalid
+- membuat semua action jadi AJAX kalau malah bikin regresi
+- mengembalikan light mode
 
 ==================================================
-PRINSIP UI/UX YANG WAJIB
+ARAH UI/UX
 ==================================================
 
-1. Dark mode only
-- hapus / abaikan light mode sepenuhnya
-- semua halaman harus konsisten dark mode
-- audit semua text agar terbaca:
-  - body text
-  - heading
-  - badge
-  - input
-  - placeholder
-  - modal
-  - dropdown
-  - tabel
-  - tombol
-  - helper text
-  - screenshot area
-  - dashboard card header
+Prinsip UI:
+- dark mode only
+- compact / ramping / flat
+- minim ruang kosong
+- toolbar dan panel harus efisien
 - jangan ada teks gelap di background gelap
-- jangan ada bg putih tersisa / mismatch
-- jika ada elemen Bootstrap terang seperti bg-white, table-light, dll, override ke dark dengan benar
+- jangan ada elemen Bootstrap putih yang lolos
 
-2. Compact / ramping / flat
-- jangan gemuk
-- jangan terlalu tinggi
-- padding diperkecil
-- button slim
-- input pendek
-- row tabel lebih kecil
-- card/panel jangan terlalu tebal
-- radius kecil, hampir kotak
-- tampilan padat dan efisien
+Halaman score:
+- header atas cukup judul tournament + badge status + tombol penting
+- quick summary tidak diperlukan
+- langsung masuk ke pot modules
 
-3. Halaman score fokus dan bersih
-- quick summary / ringkasan cepat tidak diperlukan, hapus
-- area atas cukup:
-  - judul tournament
-  - status
-  - tombol penting
-  - lalu langsung ke pot modules
+Tabel score:
+- tidak boleh vertical scroll internal
+- row bertambah ke bawah normal
+- horizontal scroll hanya fallback terakhir
+- 5 game harus aman, 6-8 game tetap rapi
 
-4. Pot card
-- urutan POT di kiri judul POT
-- judul POT jelas dan dominan
-- action bar pot profesional, slim, konsisten
-- tombol tidak terlalu banyak ornamen
+Kolom Team:
+- hanya nama team editable
+- member tidak lagi ditampilkan di kolom Team
+- jangan kembalikan hover member / hidden member UI ke kolom Team
 
-5. Tombol penting yang harus tetap berfungsi
-- Add Pot
-- Delete Pot
-- Add Team
-- + Game
-- - Game
-- Screenshot
-- Dashboard
-- Ubah Status
-- Hapus Team
-- OK untuk simpan anggota team
-- Team Manager (fitur baru)
-- semua tombol wajib berfungsi, jangan style bagus tapi logic rusak
-
-6. Nama team + anggota team
-- area nama team rapi
-- default state hemat tempat
-- bagian anggota tim:
-  - auto hidden saat idle
-  - muncul saat hover/focus/interaksi relevan
-  - ada tombol OK di sebelahnya
-- jangan sampai hover hilang
-- jangan sampai nama team wrap aneh
-- jangan sampai layout terdorong melebar
-- format anggota team tetap 1 textbox comma-separated
-- anggota team fleksibel 5–6 orang karena ada cadangan / multi account case
-
-7. Tabel score
-- adaptif terhadap jumlah game
-- horizontal scroll boleh hanya sebagai fallback terakhir
-- jangan ada vertical scroll internal
-- kalau tambah team, tabel memanjang ke bawah normal
-- jangan ada scroll ke bawah di dalam area tabel
-- sticky No / Team boleh kalau stabil
-- input score harus makin compact saat game bertambah
-- target: 5 game aman, 6–8 game jangan saling tumpuk
-- hilangkan spinner putih/bagian samping putih input number jika mengganggu
-
-8. Screenshot area
-- text terbaca
-- panel dark mode
-- collapse boleh
-- jangan mengganggu layout utama
-
-9. Header / half-window behavior
-- saat window browser dibuat setengah layar, jangan ada ruang kosong besar antara judul dan konten
-- header harus turun ke layout vertikal lebih cepat
-- tombol action kanan atas jangan menciptakan gap tinggi
-- dashboard dan score page harus tetap rapi di half-window
+Lookup team/player:
+- sederhana, compact, native-ish
+- lebih cocok datalist / combobox ringan
+- jangan popup besar yang menutupi tabel
+- format hasil konsisten:
+  - `Nama Team, Player1, Player2, Player3, ...`
 
 ==================================================
-HAL-HAL YANG DULU PERNAH RUSAK DAN JANGAN TERULANG
+AREA PRIORITAS AKTIF
 ==================================================
 
-Masalah regresi yang pernah terjadi:
-- Add Pot loading terus walau fungsional
+Fokus utama yang sedang berjalan:
+- `Team Manager` di score page
+- URL konteks utama:
+  - `http://localhost:9000/index.php/pots/{id}/scores`
+
+Tujuan Team Manager:
+- terasa seperti CMS / docking side panel di kanan
+- bisa dipakai sambil melihat tabel score di kiri
+- daftar team aman untuk 40-60 team
+- area list boleh scroll internal
+- editor team harus tetap nyaman dipakai
+
+Catatan penting:
+- perubahan aktif belakangan diminta fokus hanya ke area Team Manager jika memungkinkan
+- setiap keputusan penting wajib diringkas ke file ini
+
+==================================================
+PATCH PENTING YANG SUDAH MENJADI STATE SAAT INI
+==================================================
+
+1. Team tanpa pot + detach dari score page
+- `teams.pot_id` sekarang harus boleh `NULL`
+- team bisa hidup di database tanpa masuk pot
+- delete team dari score page sekarang berarti `detach`, bukan hard delete
+- score page wajib memakai endpoint `teams/detach/{id}`
+- hard delete tetap diperbolehkan dari context import/manual manager
+
+File inti terkait:
+- `app/Controllers/TeamController.php`
+- `app/Views/scores/_calculator.php`
+- `app/Views/teams/_manager_workspace.php`
+- `public/assets/js/score-workspace.js`
+
+2. Hapus team per-row di score table
+- dulu tombol hapus berada di dalam form autosave score bulk dan membuat nested form invalid
+- sekarang hapus team per-row dipicu via AJAX/fetch
+- pending autosave dibersihkan dulu agar tidak race condition
+- popup custom tetap dipakai
+- scroll position tetap disimpan lalu reload setelah delete sukses
+
+File inti terkait:
+- `app/Views/scores/_calculator.php`
+- `public/assets/js/score-workspace.js`
+
+3. Team Manager reusable partial
+- `app/Views/teams/_manager_workspace.php` harus dianggap reusable partial
+- file ini tidak boleh diisi full page score lagi
+- file ini pernah tertimpa halaman score dan menyebabkan:
+  - `Undefined variable $tournament`
+  - include recursion / memory exhausted
+
+4. Team Manager disederhanakan
+- struktur utama:
+  - filter Tournament
+  - filter Pot
+  - search team/member
+  - daftar team
+  - editor team
+- mode editor tunggal:
+  - belum pilih team => mode tambah
+  - pilih team => mode edit
+- tombol utama:
+  - `Tambah Team` saat create
+  - `Simpan Perubahan` saat edit
+- `Reset` kembali ke mode tambah
+- `Hapus Team` aktif hanya saat ada team terpilih
+- status/error/sukses tampil di panel manager, bukan bergantung flash global
+
+5. Database combobox lookup di Team Manager
+- `TeamController::managerData()` mengirim `lookupTeams`
+- autocomplete dipakai di:
+  - search team/member
+  - input nama team editor
+- perilaku:
+  - klik team di scope aktif => pilih team itu
+  - klik team global tanpa pot saat pot aktif => attach ke pot aktif
+  - klik team dari pot lain => Team Manager pindah ke scope tersebut
+
+6. Sinkronisasi CSRF + autosave
+- `app/Views/layouts/main.php` sekarang menyinkronkan ulang hidden input CSRF di semua form POST
+- hidden token lama dibersihkan saat token baru datang
+- `public/assets/js/score-workspace.js` memakai `saveQueued` agar perubahan saat request aktif tidak hilang
+- tujuan utama:
+  - mengurangi `SecurityException #403`
+  - mengurangi race condition autosave
+
+7. Footer global sederhana
+- footer dipisah ke partial:
+  - `app/Views/partials/footer.php`
+- dipasang di:
+  - `app/Views/layouts/main.php`
+- tujuannya:
+  - halaman bisa memanjang natural sampai bawah
+  - footer mudah dikustomisasi nanti
+
+8. Layout score page terbaru
+- toolbar atas score page sekarang dirapikan jadi dua grup:
+  - kiri: `Ubah Status`, `Show Leaderboard`
+  - kanan: `Team Manager`, `Hide Controller`, `Show Controller`
+- status visual utama pindah ke area hero header, bukan badge kecil di toolbar
+- tombol `Dashboard` di halaman score dihapus sesuai preferensi terbaru
+- tombol `Team Manager` dan `Show/Hide Controller` harus sejajar di header atas
+- panel kanan tetap dipakai untuk Team CMS
+
+File inti terkait:
+- `app/Views/scores/index.php`
+- `public/assets/css/dark-app.css`
+- `public/assets/js/score-workspace.js`
+
+9. Hero header score page + status wording baru
+- nama tournament di halaman score sekarang harus tampil besar, rata tengah, dan lebih dominan
+- untuk admin, nama tournament bisa diedit langsung dari header score page tanpa pindah halaman
+- submit nama tournament memakai AJAX ke endpoint update yang sudah ada agar tetap stay di halaman score
+- styling edit nama dibuat sekelas input nama pot: editable, jelas, dan fokus ke satu event aktif
+- wording status visual diganti agar lebih modern:
+  - `belum_mulai` => `Standby`
+  - `start` => `Live`
+  - `selesai` => `Finished`
+- chip status di score page wajib memakai dot indicator:
+  - `Live` = hijau + pulse ringan
+  - `Standby` = slate / gelap
+  - `Finished` = aksen ungu
+- perubahan ini bersifat UI/copy, bukan perubahan state bisnis
+
+File inti terkait:
+- `app/Models/TournamentModel.php`
+- `app/Views/scores/index.php`
+- `public/assets/css/dark-app.css`
+- `public/assets/js/score-workspace.js`
+
+9. Hide / Show Controller
+- logic hide/show controller memakai class terpisah:
+  - `.js-hide-controller`
+  - `.js-show-controller`
+- state disimpan di sessionStorage
+- saat controller di-hide:
+  - elemen `.controller-only` disembunyikan
+  - panel Team Manager ikut disembunyikan
+
+File inti:
+- `app/Views/scores/index.php`
+- `public/assets/js/score-workspace.js`
+- `public/assets/css/dark-app.css`
+
+10. Tuning 1366x768
+- ada rule khusus di `public/assets/css/dark-app.css` untuk layar `1366x768`
+- tujuannya:
+  - mengurangi padding
+  - merapatkan toolbar
+  - membuat panel kanan lebih efisien
+  - menjaga tabel score tetap terbaca
+
+11. Halaman daftar player / roster global
+- ada halaman baru khusus untuk melihat semua team yang sudah masuk ke sistem beserta anggota team-nya
+- tujuan:
+  - memberi tampilan yang lebih nyaman untuk audit roster
+  - hanya fokus ke tabel sederhana
+- route:
+  - `teams/roster`
+- isi utama tabel:
+  - nama tim
+  - anggota team
+- data tambahan pot/tournament hanya tampil kecil sebagai context di bawah nama tim
+
+File inti terkait:
+- `app/Controllers/TeamController.php`
+- `app/Views/teams/roster_index.php`
+- `app/Config/Routes.php`
+- `app/Views/partials/navbar.php`
+
+12. Halaman `Daftar Team` sekarang jadi management page ringan
+- `teams/roster` tidak lagi read-only
+- tiap baris team sekarang bisa:
+  - edit nama team
+  - edit daftar anggota
+  - simpan langsung dari tabel
+  - hapus team langsung dari tabel
+- form roster harus tetap bisa mengedit team tanpa pot, jadi alur update mengirim `manager_context=import`
+- hapus dari roster harus kembali lagi ke halaman roster, bukan dilempar ke halaman import
+- team yang terkait tournament status `selesai` tetap dikunci dari halaman ini
+
+File inti terkait:
+- `app/Controllers/TeamController.php`
+- `app/Views/teams/roster_index.php`
+- `public/assets/css/dark-app.css`
+
+13. Hapus tournament dipercepat dari dashboard
+- dashboard sekarang punya tombol `Hapus` langsung di daftar tournament
+- `TournamentController::delete()` sekarang menerima `redirect_to`
+- tujuan:
+  - hapus tournament bisa dilakukan tanpa pindah halaman lain
+  - setelah hapus, user tetap kembali ke halaman asal
+
+File inti terkait:
+- `app/Controllers/TournamentController.php`
+- `app/Views/dashboard/index.php`
+
+14. Perilaku import CSV terbaru
+- kebutuhan terbaru:
+  - user tidak ingin konsep registrasi dipakai di alur ini sama sekali
+  - setiap CSV yang diimport harus langsung masuk ke sistem sebagai `team` dan `team_members`
+- keputusan implementasi:
+  - alur import tidak lagi menyimpan ke `registrations` / `players`
+  - mode `Tanpa Pot` langsung membuat / update `team` sistem dengan `pot_id = NULL`
+  - mode `Dengan Pot` langsung membuat / update `team` pada pot terpilih
+  - `team_members` selalu disinkronkan langsung dari file import
+  - route import dipindah menjadi `imports/teams`
+  - UI import sekarang diperlakukan sebagai `Import Team`, bukan `Import Registrations`
+  - artefak registrasi lama dibersihkan dari model, controller, route, view, dan migration aktif
+  - migration cleanup baru disiapkan untuk:
+    - drop tabel `registrations`
+    - drop tabel `players`
+    - drop kolom `team_members.registration_id`
+- tujuan:
+  - setelah import, data langsung muncul di roster system / Team Manager tanpa langkah tambahan
+  - halaman import diperlakukan sebagai import team, bukan import registrasi
+
+File inti terkait:
+- `app/Controllers/ImportController.php`
+- `app/Views/imports/teams.php`
+- `app/Controllers/TeamController.php`
+- `app/Models/TeamMemberModel.php`
+- `app/Database/Migrations/2026-04-22-090000_RemoveRegistrationArtifacts.php`
+
+15. Pengurutan klasemen score sekarang manual
+- sebelumnya tabel score auto mengurutkan team berdasarkan total saat user mengetik
+- kebutuhan terbaru:
+  - user ingin input semua score dulu
+  - setelah itu baru klik tombol untuk mengurutkan klasemen
+- keputusan implementasi:
+  - autosort saat input score/nama dimatikan
+  - toolbar pot sekarang punya tombol `Urutkan Klasemen`
+  - klik tombol itu akan:
+    - hitung ulang total
+    - urutkan team dari skor tertinggi
+    - perbarui nomor urut
+- add/remove row atau game tetap memperbarui nomor baris, tapi tidak memaksa sort ranking otomatis
+
+File utama:
+- `app/Views/scores/_calculator.php`
+- `public/assets/js/score-workspace.js`
+
+==================================================
+MASALAH YANG MASIH AKTIF / BELUM TUNTAS
+==================================================
+
+1. Overlapping text pada header `Team CMS`
+- status: BELUM TUNTAS, masih ada laporan overlap
+- area bermasalah:
+  - judul `Team CMS`
+  - subtitle / deskripsi panel
+- patch yang sudah dicoba:
+  - tombol `Hide` dikeluarkan dari header CMS
+  - wrapper header diubah jadi `team-manager-head-copy`
+  - `h2` diganti ke blok teks biasa
+  - wrap text dipaksa via `word-break` dan `overflow-wrap`
+  - layout header diganti ke vertical stack
+- file yang paling mungkin masih perlu disentuh:
+  - `app/Views/teams/_manager_workspace.php`
+  - `public/assets/css/dark-app.css`
+- prioritas: tinggi
+- temuan terbaru:
+  - overlap kemungkinan besar bukan hanya masalah wrapping teks
+  - ada indikasi header `Team CMS` yang semi-transparan dan sticky membuat konten di bawahnya terlihat tembus / bertumpuk secara visual
+  - arah fix terbaru:
+    - header CMS dibuat non-sticky
+    - background header dibuat lebih solid / opaque
+    - z-index dan isolasi layer diperjelas
+
+2. `konteks.txt` harus selalu diperbarui
+- file ini harus dianggap living summary project
+- setiap patch penting wajib ditambahkan ringkasannya ke sini
+- jangan biarkan isi file menumpuk noise lama yang tidak lagi relevan
+
+3. Team Manager score page harus default tertutup
+- panel `Team Manager` di halaman score tidak boleh auto muncul saat load / reload
+- termasuk setelah autosave atau reload akibat input nama team di tabel score
+- state default yang benar:
+  - tombol `aria-expanded=false`
+  - workspace tanpa class `is-manager-open`
+  - panel aside `hidden` dan `data-open=0`
+- Team Manager hanya boleh muncul jika user klik tombol `Team Manager` secara manual
+
+File utama:
+- `app/Views/scores/index.php`
+- `public/assets/js/score-workspace.js`
+
+4. CMS Global ala AdminLTE untuk admin
+- sekarang aplikasi punya sidebar global khusus admin yang tampil di seluruh halaman
+- arah visual:
+  - sidebar kiri tetap
+  - nuansa AdminLTE-like
+  - toggle dari navbar
+  - desktop bisa collapse
+  - mobile jadi drawer + backdrop
+- isi utama sidebar:
+  - main navigation
+  - current context tournament/pot
+  - daftar tournament terbaru
+  - search/filter cepat untuk item sidebar
+- tujuan:
+  - pindah halaman penting lebih cepat
+  - tidak perlu kembali lewat alur navigasi lama tiap kali
+  - score page, import, roster, dan management event lebih cepat diakses
+
+File utama:
+- `app/Views/partials/global_cms.php`
+- `app/Views/layouts/main.php`
+- `app/Views/partials/navbar.php`
+- `public/assets/css/dark-app.css`
+
+5. Team roster + score page dibuat lebih fleksibel
+- halaman `Daftar Team` sekarang harus bisa menunjukkan keterangan pot team dengan jelas:
+  - jika belum punya pot => `Belum Masuk Pot`
+  - pot team bisa dipindah dari dropdown langsung
+- halaman score sekarang mendukung edit judul tournament langsung dari halaman score
+- judul tournament dibuat lebih besar dan rata tengah
+- ditambahkan kontrol ukuran teks:
+  - `Teks -`
+  - `Normal`
+  - `Teks +`
+- skala teks score page disimpan di browser agar tetap terasa konsisten
+- konteks pot juga ditampilkan lebih jelas di tiap card pot
+
+File utama:
+- `app/Controllers/TeamController.php`
+- `app/Views/teams/roster_index.php`
+- `app/Views/scores/index.php`
+- `app/Views/scores/_calculator.php`
+- `public/assets/js/score-workspace.js`
+- `public/assets/css/dark-app.css`
+
+==================================================
+FILE PALING SERING MENJADI PUSAT PATCH
+==================================================
+
+View / layout:
+- `app/Views/layouts/main.php`
+- `app/Views/partials/footer.php`
+- `app/Views/scores/index.php`
+- `app/Views/scores/_calculator.php`
+- `app/Views/teams/_manager_workspace.php`
+- `app/Views/imports/registrations.php`
+
+Controller:
+- `app/Controllers/TeamController.php`
+- `app/Controllers/ScoreController.php`
+- `app/Controllers/PotController.php`
+
+Frontend assets:
+- `public/assets/css/dark-app.css`
+- `public/assets/js/score-workspace.js`
+
+Migration penting:
+- `app/Database/Migrations/2026-04-22-020000_AllowTeamsWithoutPot.php`
+
+==================================================
+CHECKLIST REGRESI YANG HARUS SELALU DIINGAT
+==================================================
+
+Jangan sampai terulang:
+- Add Pot loading terus / tombol mati
 - Delete Pot hilang
-- +Game dan -Game mati
-- dark mode berubah jadi light lagi
-- hover anggota tim hilang
-- nama team wrap / turun / layout melebar
-- tampilan terlalu gemuk / rounded / tebal
-- text dashboard / screenshot / card header tidak kebaca
-- quick summary muncul padahal tidak diinginkan
-- patch JS/CSS terlalu agresif bikin basic interaction rusak
-- Add Team pernah kena SecurityException 403 (CSRF mismatch)
-- search team/player pernah tidak berfungsi
-- dashboard/import page pernah masih punya background/header/tabel putih
-- confirm delete bawaan browser tidak stabil di mesin saya
+- `+ Game` / `- Game` mati
+- Add Team kena 403
+- dark mode balik terang
+- lookup team/player rusak
+- score table overlap saat game bertambah
+- Team column melebar / wrap aneh
+- Team Manager partial tertimpa full page
+- hapus team dari score page jadi hard delete database
+- nested form kembali muncul di tabel score
+- dashboard/import page masih menyisakan background atau tabel putih
 
 ==================================================
-ARAH ARSITEKTUR STYLE
+PRIORITAS SAAT MELANJUTKAN PATCH
 ==================================================
 
-Saya ingin styling sebisa mungkin dipusatkan ke 1 file utama:
-- public/assets/css/dark-app.css
+Urutan fokus:
+1. stabilitas tombol dan logic
+2. overlap / readability Team Manager
+3. compact dark-mode consistency
+4. Add Team aman dari 403
+5. Team Manager UX yang cepat dan jelas
+6. menjaga `konteks.txt` tetap up to date
 
-Prinsip:
-- view hanya jadi “wajah tanpa kulit”
-- styling / skin / spacing / warna / compactness / override Bootstrap dipusatkan di CSS
-- sehingga kalau debug tampilan cukup ke 1 file saja
-
-Kalau perlu JS utama untuk score workspace dipusatkan di:
-- public/assets/js/score-workspace.js
-
-==================================================
-FITUR / PERUBAHAN YANG SUDAH DAN SEDANG DIINGINKAN
-==================================================
-
-A. Hapus semua message yang tidak berguna
-- saya ingin menghilangkan seluruh message/notifikasi yang menurut saya tidak penting
-- flash global / status autosave kalau tidak penting bisa disilentkan / disembunyikan
-- jangan bikin UI noisy
-
-B. Add Team harus cepat dan tanpa error 403
-- pernah ada error:
-  - CodeIgniter\Security\Exceptions\SecurityException #403
-  - The action you requested is not allowed.
-- error terjadi saat POST ke /teams/store
-- akar masalah sebelumnya diduga CSRF mismatch
-- saya ingin Add Team secepat mungkin, stabil, dan tidak error begitu
-
-C. Delete Team
-- jangan pakai browser confirm bawaan
-- ganti ke popup custom yang ringan
-- tetap dark mode
-- lightweight
-- tidak mengganggu
-- setelah hapus team, posisi scroll halaman harus tetap stay / restore
-- saya tidak mau harus scroll dari atas tiap kali delete
-
-D. Lookup / search team & player di score page
-Saya ingin ada 2 textbox kecil, compact, sejajar dengan toolbar tombol:
-- textbox 1: cari team
-- textbox 2: cari player
-
-Kebutuhan final:
-- keduanya tampil sejajar dengan tombol Add Team, +Game, -Game, Screenshot, Delete Pot
-- label cukup placeholder di dalam box, tidak perlu tulisan di luar box
-- minimalist dan compact
-
-Perilaku lookup final yang saya mau:
-- kalau saya ketik nama player ATAU nama team di textbox manapun,
-  akan muncul dropdown/combobox kecil
-- hasil dropdown untuk kedua textbox HARUS sama formatnya
-- format hasil:
-  Nama Team, Player1, Player2, Player3, ...
-- contoh:
-  Team Alpha, Player A, Player B, Player C
-- jadi:
-  - ketik nama team -> keluar hasil format di atas
-  - ketik nama player -> juga keluar hasil format di atas
-- hasil cukup client-side per pot/card yang sedang tampil, kalau itu paling ringan
-- kalau saya klik hasil dropdown, nilai itu bisa masuk ke textbox
-
-E. Team column
-- jumlah badge member ingin dihilangkan
-- area team jangan tabrakan dengan kolom rank
-- jangan overflow
-- jangan menabrak sticky columns
-- team cell tetap compact
-
-F. Input skor
-- buat textbox score lebih kecil / simpel / rapi
-- makin compact saat jumlah game bertambah
-- 6–8 game jangan saling bertumpuk
-- hilangkan bagian putih samping/spinner number jika mengganggu
-- tetap clean
-
-G. Import page jadi pusat management manual juga
-Halaman:
-- /index.php/imports/registrations
-
-Saya ingin halaman ini selain upload CSV juga bisa:
-- manual management team
-- tambah team manual
-- edit team
-- hapus team
-- edit anggota/member
-- pilih tournament dulu
-- lalu pilih pot
-- setelah pilih tournament + pot, team di pot itu muncul
-- bisa kelola dari situ tanpa harus pindah halaman
-- format member tetap comma-separated
-- anggota team fleksibel sampai 5–6
-
-Jadi di import page harus ada 2 mode utama:
-1. Upload CSV seperti sekarang
-2. Manual Team Manager:
-   - combobox Tournament
-   - combobox Pot
-   - nama team
-   - anggota team (comma-separated)
-   - tambah
-   - update
-   - hapus
-   - list team untuk klik-edit cepat
-
-H. Score page punya Team Manager persistent panel
-Halaman:
-- /index.php/pots/{id}/scores
-
-Saya ingin ada tombol khusus:
-- Team Manager
-
-Saat ditekan:
-- muncul panel kanan / drawer / side panel
-- bisa hide/show
-- tidak hilang hanya karena saya fokus ke tabel score
-- bukan modal biasa yang ganggu
-- bukan popup browser
-- sebaiknya persistent drawer / side manager
-
-Isi panel:
-- pilih tournament via combobox
-- pilih pot via combobox
-- lihat semua team + member
-- tambah team
-- edit nama team
-- edit member
-- hapus team
-- semua tetap bisa dikelola sambil melihat tabel score di kiri
-
-Preferensi:
-- panel kanan persistent
-- lebar sekitar setengah / sebagian layar
-- tidak memaksa pindah halaman
-- workflow cepat untuk konfirmasi roster dan edit data team/member tanpa bolak-balik
-
-I. Dashboard landing page
-- tulisan H1 “Dashboard” pernah diminta dihapus karena tidak berguna
-- kalau file sekarang masih menampilkan, sesuaikan dengan preferensi berikut:
-  - halaman landing cukup ringkas
-  - subtitle informatif boleh
-  - tidak ada ruang kosong tinggi
-  - card management event tetap rapi
-- halaman half-window juga harus rapi
-
-==================================================
-KONDISI FILE / PATCH YANG PERNAH TERJADI
-==================================================
-
-Beberapa hal penting yang pernah ditemukan:
-- dark-app.css pernah ketimpa isi PHP dan jadi bukan CSS valid
-- score-workspace.js pernah bukan JS valid / isinya salah
-- ada rule CSS saling konflik karena hotfix bertumpuk
-- `.sticky-team`, `.team-main-line`, `.team-name-input`, `.team-inline-badge` pernah jadi sumber tabrakan layout
-- dashboard/import pernah masih pakai elemen terang seperti bg-white / table-light
-- beberapa patch sudah pernah mencoba memusatkan style ke dark-app.css
-- beberapa patch sudah pernah mencoba menambah sync CSRF di layout main dan quick add team via JS
-
-Artinya:
-- audit real file yang saya upload nanti dulu
-- jangan berasumsi semua patch lama sudah bersih
-- kemungkinan ada rule konflik / duplikasi / override saling bertabrakan
-
-==================================================
-JANGAN LAKUKAN HAL INI
-==================================================
-
-- jangan kasih teori panjang doang
-- jangan kasih pseudo-code
-- jangan bilang “sesuaikan sendiri”
-- jangan kasih snippet setengah
-- jangan reset database
-- jangan drop tabel tanpa alasan kuat
-- jangan bongkar auth kalau tidak perlu
-- jangan ubah stack
-- jangan bikin light mode
-- jangan pakai localStorage sebagai sumber data utama
-- jangan bikin tombol mati demi styling
-- jangan bikin hover/member editor makin ribet
-- jangan bikin nama team wrap / turun / melebar
-- jangan bikin tabel vertical scroll internal
-- jangan bikin layout gemuk / rounded / tebal
-- jangan kasih solusi yang memecah styling ke banyak tempat kalau masih bisa dipusatkan
-- jangan memaksa clarifying question terlalu banyak kalau konteks sudah cukup jelas
-- kalau bisa, langsung kasih full code siap copas atau zip patch
-
-==================================================
-OUTPUT YANG SAYA MAU DARI ANDA
-==================================================
-
-Saya ingin jawaban Anda terstruktur begini:
-
-1. AUDIT SINGKAT
-- jelaskan akar masalah paling mungkin berdasarkan file yang saya upload
-- bedakan mana yang perlu fix di CSS, mana di JS, mana di view, mana di controller
-- kalau DB/controller tidak perlu disentuh, bilang jelas
-
-2. DAFTAR FILE YANG PERLU DIUBAH
-Contoh:
-- app/Views/layouts/main.php
-- app/Views/dashboard/index.php
-- app/Views/scores/index.php
-- app/Views/scores/_calculator.php
-- app/Views/imports/registrations.php
-- app/Views/imports/_preview.php
-- app/Views/teams/_manager_workspace.php
-- public/assets/css/dark-app.css
-- public/assets/js/score-workspace.js
-- controller lain kalau memang perlu
-
-3. KODE LENGKAP FINAL PER FILE
-- tampilkan full code final
-- siap copas
-- jangan diff
-- jangan snippet setengah
-- kalau file tidak perlu diubah, jangan dipaksa
-
-4. LANGKAH EKSEKUSI KONKRET
-- urutan replace file
-- command yang perlu dijalankan
-- apakah perlu php spark optimize:clear
-- apakah perlu hard refresh
-- apakah perlu retest tombol tertentu
-
-5. CHECKLIST VALIDASI
-Checklist minimal:
-- [ ] dark mode full aktif
-- [ ] light mode hilang
-- [ ] dashboard landing rapi
-- [ ] import registrations full dark mode
-- [ ] semua teks terbaca
-- [ ] Add Pot berfungsi
-- [ ] Delete Pot muncul dan berfungsi
-- [ ] + Game / - Game berfungsi
-- [ ] Add Team berfungsi cepat
-- [ ] Add Team tidak 403
-- [ ] Delete Team pakai popup custom ringan
-- [ ] posisi scroll stay setelah delete team
-- [ ] hover anggota tim muncul
-- [ ] anggota tim hidden saat idle
-- [ ] tombol OK berfungsi
-- [ ] nama team tidak wrap aneh
-- [ ] kolom Team tidak tabrakan dengan Rank
-- [ ] tabel tidak vertical scroll
-- [ ] row bertambah ke bawah normal
-- [ ] UI lebih compact
-- [ ] half-window tidak ada gap kosong besar
-- [ ] lookup team berfungsi
-- [ ] lookup player berfungsi
-- [ ] hasil kedua textbox sama formatnya
-- [ ] format hasil: Nama Team, Player1, Player2, ...
-- [ ] import page bisa manual team management
-- [ ] score page punya Team Manager panel
-- [ ] fitur lama tidak rusak
-
-==================================================
-CARA KERJA YANG SAYA MAU
-==================================================
-
-- review zip / screenshot / file yang saya upload
-- pahami dependensi antar file
-- jangan asal ganti CSS tanpa cek JS/view
-- utamakan patch kecil tapi efektif
-- prioritaskan stabilitas dulu
-- kalau AJAX penuh bikin regressions, pakai hybrid approach
-- saya lebih suka solusi cepat yang bisa langsung dicopas
-- kalau artifact/zip gagal diunduh, berikan full code inline langsung di chat
-- kalau saya minta zip, buat zip siap pakai
-- kalau saya minta satu file tertentu, berikan full isi file itu siap copas
-
-==================================================
-FOCUS PRIORITAS JIKA HARUS DIURUTKAN
-==================================================
-
-1. dark mode full + readability
-2. semua tombol penting kembali/ tetap berfungsi
-3. compact / ramping / flat style
-4. Team column stabil
-5. Add Team cepat dan bebas 403
-6. delete team popup custom ringan + scroll stay
-7. lookup team/player berfungsi sesuai format final
-8. import page manual team management
-9. score page persistent Team Manager panel
-10. half-window layout rapi tanpa gap besar
-11. input score makin compact saat game bertambah
-12. styling terpusat sebanyak mungkin di 1 file CSS
-
-==================================================
-CATATAN TERAKHIR
-==================================================
-
-- local URL yang sering dipakai:
-  - http://localhost:9000/index.php/dashboard
-  - http://localhost:9000/index.php/imports/registrations
-  - http://localhost:9000/index.php/pots/1/scores
-- fokus ke code current state, bukan setup env lama
-- anggap saya ingin melanjutkan patch dari state existing
-- saya ingin hasil praktis, bukan eksperimen
-- kalau Anda perlu bertanya, tanyakan hanya jika benar-benar perlu. Kalau konteks sudah cukup, langsung audit dan berikan full code final siap copas.
-
-==================================================
-UPDATE KONTEKS BERJALAN
-==================================================
-
-Patch terbaru yang harus dianggap sebagai state paling baru:
-
-- kolom Team di halaman score disederhanakan:
-  - hanya nama team editable
-  - member tidak lagi ditampilkan di dalam kolom Team
-  - jangan kembalikan hidden member UI/tooltip member di kolom Team
-
-- pencarian team/player di halaman score diinginkan sesederhana mungkin:
-  - lebih cocok ke dropdown native / datalist / combobox sederhana
-  - hindari custom popup result yang menutupi tabel
-  - format hasil harus sederhana dan konsisten:
-    - Nama Team, Player1, Player2, Player3, ...
-
-- tabel score diinginkan:
-  - lebih simpel
-  - fungsional
-  - tidak overlap
-  - tidak saling tumpuk saat game bertambah
-
-- Team Manager di halaman score adalah prioritas aktif:
-  - URL utama konteks issue:
-    - http://localhost:9000/index.php/pots/2/scores
-  - user ingin Team Manager terasa seperti docking panel / CMS side panel
-  - panel harus menempel jelas di sisi kanan
-  - perubahan visual docking harus terlihat jelas
-  - daftar team di Team Manager harus bisa discroll internal
-  - target jumlah team sekitar 40-60
-  - area list harus aman untuk data panjang
-  - fokus edit terakhir diminta:
-    - hanya edit bagian Team Manager
-    - jangan sentuh area lain jika tidak perlu
-
-- preferensi kerja tambahan dari user:
-  - setiap ada update/keputusan penting, tambahkan ke konteks ini
-  - konteks.txt harus diperlakukan sebagai living summary project
-
-- incident penting tanggal update terbaru:
-  - file `app/Views/teams/_manager_workspace.php` sempat tertimpa isi halaman score
-  - dampaknya:
-    - halaman import registrations error `Undefined variable $tournament`
-    - halaman score bisa mengalami include recursion / memory exhausted
-  - file tersebut harus dianggap sebagai partial Team Manager reusable
-  - jangan isi file itu dengan full page score lagi
-
-- patch terbaru untuk bug hapus team di halaman score:
-  - issue yang ditemukan:
-    - tombol Hapus Team di tabel score sebelumnya berada di dalam form autosave score bulk
-    - struktur form menjadi nested / invalid secara HTML
-    - akibatnya klik hapus bisa bentrok dengan submit form score, terutama saat input score masih terisi
-    - gejalanya: team gagal dihapus atau perilakunya tidak konsisten antara kondisi score kosong vs terisi
-  - keputusan implementasi:
-    - untuk row team di `app/Views/scores/_calculator.php`, tombol hapus team diubah menjadi button biasa, bukan form submit nested
-    - proses hapus team pada row score dipicu via AJAX/fetch langsung ke endpoint `teams/delete/{id}`
-    - sebelum request hapus dijalankan, pending autosave score dibersihkan dulu agar tidak race condition
-    - popup konfirmasi hapus tetap dipakai
-    - posisi scroll tetap disimpan lalu halaman di-reload setelah delete sukses
-  - file yang disentuh untuk fix ini:
-    - `app/Views/scores/_calculator.php`
-    - `public/assets/js/score-workspace.js`
-  - catatan penting:
-    - structural action umumnya tetap prefer submit biasa jika stabil
-    - tetapi khusus tombol Hapus Team per-row di dalam tabel score, AJAX dipilih karena markup sebelumnya bentrok dengan form score bulk
-    - jangan kembalikan nested form hapus team ke dalam form score bulk
-
-- preferensi kerja yang wajib diteruskan:
-  - setiap patch / keputusan implementasi baru wajib diringkas ke `konteks.txt`
-  - `konteks.txt` harus selalu dianggap sebagai living summary terbaru project
-  - sebelum menutup perubahan, cek apakah ada keputusan penting yang perlu dicatat ke file ini
-
-- patch terbaru untuk penyederhanaan Team Manager:
-  - tujuan:
-    - Team Manager harus lebih simpel, lebih mudah dipakai, dan tidak terasa gagal diam-diam saat add/update/delete
-    - fokus utama adalah fungsi penuh untuk tambah team, bukan sekadar ubah tampilan
-  - keputusan UX baru:
-    - Team Manager disederhanakan menjadi:
-      - filter Tournament
-      - filter Pot
-      - search team/member
-      - daftar team
-      - editor team
-    - editor sekarang memakai mode tunggal:
-      - jika belum pilih team: mode tambah
-      - jika pilih team dari daftar: mode edit
-    - tombol utama cukup satu untuk simpan:
-      - saat mode tambah -> `Tambah Team`
-      - saat mode edit -> `Simpan Perubahan`
-    - tombol `Reset` dipakai untuk kembali ke mode tambah / team baru
-    - tombol `Hapus Team` hanya aktif saat ada team terpilih
-    - status/error/sukses harus tampil langsung di panel Team Manager, jangan mengandalkan flash global yang disilent
-  - keputusan teknis baru:
-    - validasi nama team di front-end Team Manager tidak boleh terlalu agresif
-    - nama team boleh dikosongkan saat create, backend akan memberi nama default otomatis
-    - setelah create/update/delete:
-      - jika sedang mengelola pot yang sama dengan score page aktif, halaman boleh reload agar tabel score sinkron
-      - jika bukan pot aktif di score page, Team Manager cukup reload daftar internalnya sendiri
-    - tombol `Team Manager` di halaman score harus benar-benar men-toggle panel manager, bukan container workspace utama
-  - file utama yang disentuh untuk patch ini:
-    - `app/Views/teams/_manager_workspace.php`
-    - `app/Views/scores/index.php`
-    - `public/assets/js/score-workspace.js`
-    - `public/assets/css/dark-app.css`
-
-- patch terbaru untuk team tanpa pot + detach dari score page:
-  - kebutuhan bisnis baru:
-    - team harus bisa disimpan ke database tanpa wajib masuk ke pot
-    - saat team dikeluarkan dari tabel penghitung score, data team tidak boleh hilang dari database
-    - team yang sudah dilepas dari pot harus tetap bisa dikelola dari halaman import registrations melalui Team Manager
-  - keputusan data:
-    - kolom `teams.pot_id` sekarang harus boleh `NULL`
-    - foreign key `teams -> pots` diubah menjadi `ON DELETE SET NULL`
-    - migration baru dibuat:
-      - `app/Database/Migrations/2026-04-22-020000_AllowTeamsWithoutPot.php`
-  - keputusan perilaku UI:
-    - Team Manager di halaman import sekarang mendukung scope `Tanpa Pot (database only)`
-    - create/update dari Team Manager import boleh dilakukan tanpa memilih pot
-    - team global tanpa pot ditampilkan melalui scope tersebut
-  - keputusan delete:
-    - delete dari score page tidak lagi berarti hard delete team dari database
-    - delete dari score page sekarang berarti:
-      - hapus score team pada pot itu
-      - lepaskan team dari pot (`pot_id = NULL`)
-      - simpan data team + member tetap di database
-    - hard delete team tetap dimungkinkan dari Team Manager context import
-  - fail-safe backend:
-      - request delete yang berasal dari context score atau redirect URL `/scores` harus selalu diperlakukan sebagai `detach`
-      - jadi walaupun payload `delete_mode` hilang/berubah, delete dari halaman score tidak boleh hard-delete database
-  - penguatan arsitektur:
-    - score page sekarang tidak lagi memakai endpoint `teams/delete` untuk mengeluarkan team dari tabel score
-    - score page wajib memakai endpoint khusus `teams/detach/{id}`
-    - endpoint `teams/delete/{id}` dipertahankan hanya untuk hard delete context import/manual manager
-  - file utama yang disentuh:
-    - `app/Controllers/TeamController.php`
-    - `app/Views/imports/registrations.php`
-    - `app/Views/scores/_calculator.php`
-    - `app/Views/teams/_manager_workspace.php`
-    - `public/assets/js/score-workspace.js`
-
-- patch terbaru untuk combobox / dropdown Team Manager berbasis database:
-  - kebutuhan baru:
-    - pencarian team di Team Manager harus benar-benar bekerja
-    - pencarian dan input nama team harus menampilkan dropdown/combobox dari data yang ada di database
-    - user harus bisa klik hasil dropdown untuk memilih team yang ada atau memasukkannya ke tabel team
-  - keputusan implementasi:
-    - `TeamController::managerData()` sekarang mengirim `lookupTeams` tambahan berisi data team dari database
-    - lookup mengikuti tournament terpilih + team global tanpa pot
-    - Team Manager sekarang punya dropdown autocomplete di:
-      - input pencarian team/member
-      - input nama team editor
-    - jika user klik team yang sudah ada di scope aktif:
-      - editor langsung memilih team tersebut
-    - jika user klik team global `Tanpa Pot` saat pot aktif dipilih:
-      - team langsung dipasang ke pot aktif
-      - setelah itu tabel/list team akan refresh
-    - jika user klik team yang ada di pot lain:
-      - Team Manager akan pindah ke scope team tersebut lalu memilihnya
-  - file utama yang disentuh:
-    - `app/Controllers/TeamController.php`
-    - `app/Views/teams/_manager_workspace.php`
-    - `public/assets/js/score-workspace.js`
-    - `public/assets/css/dark-app.css`
-
-- patch terbaru untuk combobox editor team di tabel score:
-  - kebutuhan baru:
-    - editor nama team per-row di tabel score juga harus punya dropdown/combobox dari database
-  - keputusan implementasi:
-    - input nama team di `app/Views/scores/_calculator.php` sekarang punya dropdown inline
-    - dropdown memakai cache lookup database yang sama dengan Team Manager
-    - saat user mengetik nama team di row:
-      - hasil dari database muncul di bawah input
-      - klik hasil akan mengisi nama team ke row tersebut
-      - perubahan tetap mengikuti autosave tabel score seperti edit nama team biasa
-  - file utama yang disentuh:
-    - `app/Views/scores/_calculator.php`
-    - `public/assets/js/score-workspace.js`
-    - `public/assets/css/dark-app.css`
-  - catatan bug lanjutan:
-    - dropdown editor tabel sempat tidak muncul walau logic JS sudah ada
-    - akar masalah paling mungkin ada di clipping layout tabel score:
-      - `score-table-shell` / `score-team-col` / `team-cell` masih mengandung `overflow: hidden`
-    - fix dilakukan dengan membuka overflow vertikal dan menaikkan layer combobox di kolom Team
-    - update lanjutan:
-      - editor nama team per-row di tabel score dialihkan ke `datalist` native browser
-      - alasan:
-        - lebih stabil di dalam layout tabel
-        - tidak tergantung positioning absolute custom dropdown
-      - lookup datalist tetap diisi dari database melalui JS lookup cache yang sama
-
-- patch terbaru untuk Add Team di halaman score:
-  - kebutuhan baru:
-    - klik `Add Team` di tabel score tidak boleh langsung insert ke database
-    - klik `Add Team` hanya boleh menambah row kosong lokal dulu
-  - keputusan implementasi:
-    - tombol `Add Team` di score page tidak lagi submit ke `teams/store`
-    - tombol sekarang membuat temporary row di tabel score
-    - row temporary belum tersimpan ke database sampai user mulai mengisi data lalu `saveBulk` berjalan
-    - temporary row kosong murni harus diabaikan backend dan tidak boleh membuat record team
-    - jika user mengisi nama/score pada row temporary, `ScoreController::saveBulk()` akan membuat team baru lalu menyimpan score terkait
-
-- patch terbaru untuk pencegahan duplikasi team dari tabel score + warning nama sama:
-  - issue yang ditemukan:
-    - row temporary di tabel score sebelumnya tetap memakai key `temp_*` walau save berhasil
-    - akibatnya autosave berikutnya bisa membuat record team baru lagi karena backend tetap menganggap row itu team baru
-    - selain itu `saveBulk()` dulu membuat / rename team lebih dulu sebelum seluruh validasi selesai
-    - dampaknya:
-      - nama team yang sudah ada seperti `sekeng` bisa terduplikasi saat diketik langsung dari tabel score
-      - warning konflik tidak terlihat jelas karena area status autosave di-score page disilent
-  - keputusan implementasi:
-    - `ScoreController::saveBulk()` sekarang:
-      - mendeteksi nama team duplikat lebih dulu sebelum commit database
-      - memblokir team baru jika nama sudah ada di pot aktif
-      - memblokir duplikasi jika nama sudah ada di pot lain
-      - memakai team global `Tanpa Pot` yang sudah ada jika nama sama, lalu memasukkannya ke pot aktif alih-alih membuat duplikat baru
-      - menunda create/update team sampai semua validasi score lolos agar tidak ada record nyasar
-      - membuat nama auto `Team N` yang unik agar tidak bentrok
-    - setelah row temporary berhasil tersimpan / ter-resolve ke team database, response AJAX sekarang meminta reload halaman
-      - tujuannya supaya row `temp_*` diganti row team asli dengan ID database
-      - ini mencegah autosave berikutnya membuat duplikasi lagi
-    - score page sekarang punya status inline kecil khusus error/warning autosave
-      - dipakai untuk menampilkan konflik nama team yang sama tanpa menghidupkan flash global
-    - `TeamController::store()` dan `TeamController::update()` juga sekarang menolak nama team duplikat dan memberi pesan warning yang jelas
-  - file utama yang disentuh:
-    - `app/Controllers/ScoreController.php`
-    - `app/Controllers/TeamController.php`
-    - `app/Views/scores/_calculator.php`
-    - `public/assets/js/score-workspace.js`
-    - `public/assets/css/dark-app.css`
-
-- patch terbaru untuk optimasi layout laptop 1366x768:
-  - kebutuhan baru:
-    - tampilan harus lebih optimal untuk laptop resolusi 1366x768
-    - issue utama sebelumnya muncul pada kombinasi lebar menengah + tinggi pendek:
-      - header masih makan ruang vertikal
-      - toolbar score terlalu rapat/panjang
-      - panel Team Manager terlalu dominan saat terbuka
-      - area editor/list manager terasa terlalu tinggi
-  - keputusan implementasi:
-    - tuning dilakukan di CSS terpusat agar tetap konservatif dan tidak mengubah logic
-    - ditambahkan mode compact khusus untuk:
-      - `max-width: 1366px`
-      - atau layar yang sedikit lebih lebar tapi tinggi pendek
-    - penyesuaian utama:
-      - header dashboard/import/score dipendekkan
-      - tombol dan input toolbar dibuat sedikit lebih ramping
-      - search box score dipersempit agar lebih muat
-      - card/body/padding modul dipadatkan
-      - layout score + Team Manager dipersempit agar tabel score tetap punya ruang
-      - panel Team Manager dibuat lebih hemat tinggi dengan padding, summary bar, list item, dan textarea yang lebih compact
-      - tabel score dan input di dalamnya dibuat sedikit lebih kecil agar lebih nyaman di 1366x768
-  - file utama yang disentuh:
-    - `public/assets/css/dark-app.css`
-
-- patch terbaru untuk mode `Tanpa Pot (Database Only)` di import registrations:
-  - issue yang ditemukan:
-    - Team Manager import sebelumnya menafsirkan mode `Tanpa Pot` sebagai hanya team dengan `pot_id = NULL`
-    - akibatnya list bisa kosong padahal sebenarnya banyak team sudah ada di pot 1 / pot 2 pada tournament yang sama
-  - keputusan implementasi:
-    - pada halaman `/index.php/imports/registrations`, saat pot selector berada di `Tanpa Pot (Database Only)`, Team Manager sekarang harus menampilkan:
-      - semua team yang berada di semua pot dalam tournament terpilih
-      - ditambah team global yang memang belum punya pot
-    - jadi mode ini sekarang diperlakukan sebagai view database tingkat tournament, bukan filter khusus `pot_id NULL`
-    - daftar team di mode ini juga perlu menampilkan label scope/pot agar user tahu team tersebut berasal dari pot mana atau masih tanpa pot
-    - status panel di mode ini ikut diubah agar jelas bahwa user sedang melihat semua team tournament
-  - file utama yang disentuh:
-    - `app/Controllers/TeamController.php`
-    - `public/assets/js/score-workspace.js`
-
-- patch final terbaru untuk score page:
-  - kebutuhan bisnis baru:
-    - tabel score harus otomatis mengurutkan team berdasarkan total score tertinggi
-    - user butuh mode cepat untuk screenshot hasil tanpa tombol/controller mengganggu
-    - user butuh menandai team yang lolos lalu memindahkannya ke pot baru untuk babak berikutnya
-  - keputusan implementasi:
-    - ranking otomatis:
-      - total score per row tetap dihitung realtime dari placement + kill
-      - setelah nilai berubah, row otomatis di-sort descending berdasarkan total
-      - nomor urut `No` ikut dihitung ulang otomatis
-      - render awal dari backend juga ikut mengurutkan team berdasarkan total agar urutan langsung benar saat halaman dibuka
-    - mode screenshot:
-      - ditambahkan tombol `Hide Controller` di header score page
-      - saat aktif, seluruh elemen bertanda controller disembunyikan:
-        - action header
-        - toolbar pot
-        - kolom aksi tabel
-        - kolom lolos
-        - panel Team Manager
-      - disediakan tombol floating `Show Controller` untuk mengembalikan tampilan normal
-      - state hide controller disimpan sementara di session browser agar tetap bertahan saat reload
-    - team lolos ke pot baru:
-      - ditambahkan kolom baru `Lolos` berisi checkbox per team
-      - ditambahkan tombol `Lolos -> Pot Baru` di toolbar tiap pot
-      - saat diklik:
-        - sistem membuat pot baru otomatis di tournament yang sama
-        - semua team yang dicentang dipindahkan ke pot baru itu
-        - setelah sukses, user diarahkan ke halaman score pot baru
-      - implementasi ini memakai endpoint baru:
-        - `POST pots/advance/{potId}`
-  - file utama yang disentuh:
-    - `app/Controllers/PotController.php`
-    - `app/Controllers/ScoreController.php`
-    - `app/Config/Routes.php`
-    - `app/Views/scores/index.php`
-    - `app/Views/scores/_calculator.php`
-    - `public/assets/js/score-workspace.js`
-    - `public/assets/css/dark-app.css`
+Update 2026-04-23 - stabilitas auth/session:
+- Idle timeout tetap 5 menit untuk UX keamanan.
+- Session aplikasi diperpanjang agar form login tidak cepat basi setelah auto logout.
+- Gagal CSRF tidak lagi menampilkan 403 mentah; diarahkan kembali dengan pesan yang lebih halus.
+- Halaman auth diberi no-cache ringan agar token/form lama tidak mudah muncul dari browser cache.
+- Pesan idle timeout/login ulang diseragamkan menjadi: 'Sesi berakhir, silakan login kembali.'

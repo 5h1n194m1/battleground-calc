@@ -1,7 +1,7 @@
 <div class="card stat-card">
     <div class="card-body p-0">
         <?php if ($leaderboard === []): ?>
-            <div class="p-4 text-center text-muted">Belum ada team atau score pada pot ini.</div>
+            <div class="p-4 text-center text-muted">Belum ada data.</div>
         <?php else: ?>
             <div class="table-responsive">
                 <table class="table table-striped align-middle mb-0">

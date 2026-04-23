@@ -5,6 +5,11 @@ $path    = trim(service('request')->getUri()->getPath(), '/');
 ?>
 <nav class="navbar navbar-expand-lg bg-dark navbar-dark shadow-sm">
     <div class="container">
+        <?php if ($isAdmin): ?>
+            <button type="button" class="btn btn-link nav-sidebar-toggle js-global-cms-toggle" aria-controls="globalCmsPanel" aria-expanded="true">
+                <span class="nav-sidebar-toggle-bars"></span>
+            </button>
+        <?php endif; ?>
         <a class="navbar-brand fw-semibold" href="<?= site_url('dashboard') ?>">Battleground Calc</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -20,7 +25,10 @@ $path    = trim(service('request')->getUri()->getPath(), '/');
                         <a class="nav-link <?= str_starts_with($path, 'tournaments') ? 'active' : '' ?>" href="<?= site_url('dashboard') ?>">Management Event</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?= str_starts_with($path, 'imports/registrations') ? 'active' : '' ?>" href="<?= site_url('imports/registrations') ?>">Import Registrations</a>
+                        <a class="nav-link <?= str_starts_with($path, 'imports/teams') ? 'active' : '' ?>" href="<?= site_url('imports/teams') ?>">Import Teams</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= str_starts_with($path, 'teams/roster') ? 'active' : '' ?>" href="<?= site_url('teams/roster') ?>">Teams</a>
                     </li>
                 <?php endif; ?>
             </ul>

@@ -8,7 +8,7 @@
     </div>
     <div class="d-flex gap-2">
         <?php if (auth()->user()?->inGroup('admin')): ?>
-            <a href="<?= site_url('pots/' . $pot['id'] . '/scores') ?>" class="btn btn-outline-success">Input Score</a>
+            <a href="<?= site_url('pots/' . $pot['id'] . '/scores') ?>" class="btn btn-outline-success">Score</a>
         <?php endif; ?>
         <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary">Kembali</a>
     </div>

@@ -4,7 +4,7 @@
 <div class="page-header">
     <div>
         <h1 class="h3 mb-1"><?= esc($formTitle) ?></h1>
-        <p class="text-muted mb-0">Isi nama dan status tournament lalu simpan perubahan.</p>
+        
     </div>
     <a href="<?= site_url('tournaments') ?>" class="btn btn-outline-secondary">Kembali</a>
 </div>

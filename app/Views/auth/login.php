@@ -3,6 +3,13 @@
 <?= $this->section('title') ?>Login - Battleground Calc<?= $this->endSection() ?>
 
 <?= $this->section('main') ?>
+<?php
+    $rawError = session('error');
+    $displayError = $rawError;
+    if (is_string($displayError) && trim($displayError) === 'The action you requested is not allowed.') {
+        $displayError = 'Sesi berakhir, silakan login kembali.';
+    }
+?>
 <div class="container-fluid auth-container">
     <div class="auth-card-wrap">
         <section class="card auth-card">
@@ -10,11 +17,10 @@
                 <div class="auth-brand-block">
                     <div class="auth-eyebrow">Battleground Calc</div>
                     <h1 class="auth-title">Masuk</h1>
-                    <p class="auth-subtitle">Masuk ke panel admin turnamen.</p>
                 </div>
 
-                <?php if (session('error') !== null) : ?>
-                    <div class="alert alert-danger" role="alert"><?= esc(session('error')) ?></div>
+                <?php if ($displayError !== null) : ?>
+                    <div class="alert alert-danger" role="alert"><?= esc($displayError) ?></div>
                 <?php elseif (session('errors') !== null) : ?>
                     <div class="alert alert-danger" role="alert">
                         <?php if (is_array(session('errors'))) : ?>
@@ -25,6 +31,10 @@
                             <?= esc(session('errors')) ?>
                         <?php endif ?>
                     </div>
+                <?php endif ?>
+
+                <?php if (session('notice') !== null) : ?>
+                    <div class="alert alert-secondary" role="alert"><?= esc(session('notice')) ?></div>
                 <?php endif ?>
 
                 <?php if (session('message') !== null) : ?>

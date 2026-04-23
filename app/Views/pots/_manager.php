@@ -10,10 +10,9 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
     <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <h2 class="h4 mb-1"><?= esc($pot['name']) ?></h2>
-            <p class="text-muted mb-0">Full calculator untuk pot ini.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <span class="small text-muted align-self-center">Team: <?= esc((string) count($teams)) ?></span>
+            <span class="small text-muted align-self-center"><?= esc((string) count($teams)) ?> team</span>
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editPotModal<?= $pot['id'] ?>">Edit Pot</button>
             <form action="<?= site_url('pots/delete/' . $pot['id']) ?>" method="post" onsubmit="return confirm('Hapus pot ini beserta seluruh team dan score?');">
                 <?= csrf_field() ?>
@@ -26,7 +25,7 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
             <div class="col-xl-3">
                 <div class="card border-0 bg-light-subtle h-100">
                     <div class="card-body">
-                        <h3 class="h6 mb-3">Tambah Team</h3>
+                        <h3 class="h6 mb-3">Team</h3>
                         <?= view('teams/form', [
                             'action'      => site_url('teams/store'),
                             'team'        => null,
@@ -52,7 +51,7 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
                         <tbody>
                             <?php if ($teams === []): ?>
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Belum ada team pada pot ini.</td>
+                                    <td colspan="5" class="text-center text-muted py-4">Belum ada team.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($teams as $team): ?>
@@ -64,7 +63,7 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
                                         </td>
                                         <td>
                                             <?php if ($members === []): ?>
-                                                <span class="text-muted">Belum ada anggota tersinkron.</span>
+                                                <span class="text-muted">-</span>
                                             <?php else: ?>
                                                 <?php foreach ($members as $member): ?>
                                                     <div>
@@ -80,10 +79,6 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
                                         <td class="text-center fw-semibold"><?= esc((string) $team['total_score']) ?></td>
                                         <td class="text-end">
                                             <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
-                                                <form action="<?= site_url('teams/sync-members/' . $team['id']) ?>" method="post">
-                                                    <?= csrf_field() ?>
-                                                    <button type="submit" class="btn btn-sm btn-outline-dark">Sinkron Anggota</button>
-                                                </form>
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editTeamModal<?= $team['id'] ?>">Edit</button>
                                                 <form action="<?= site_url('teams/delete/' . $team['id']) ?>" method="post" onsubmit="return confirm('Hapus team ini?');">
                                                     <?= csrf_field() ?>
@@ -136,8 +131,8 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
         </div>
 
         <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
-            <a href="<?= site_url('leaderboard/pot/' . $pot['id']) ?>" class="btn btn-outline-dark btn-sm">Lihat Hasil</a>
-            <a href="<?= site_url('pots/' . $pot['id'] . '/scores') ?>" class="btn btn-outline-success btn-sm">Mode Full</a>
+            <a href="<?= site_url('leaderboard/pot/' . $pot['id']) ?>" class="btn btn-outline-dark btn-sm">Hasil</a>
+            <a href="<?= site_url('pots/' . $pot['id'] . '/scores') ?>" class="btn btn-outline-success btn-sm">Buka</a>
         </div>
     </div>
 </section>

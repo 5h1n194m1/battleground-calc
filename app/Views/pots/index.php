@@ -13,11 +13,11 @@ $badgeClass = match ($status) {
 <div class="page-header">
     <div>
         <h1 class="h3 mb-1"><?= esc($tournament['name']) ?></h1>
-        <p class="text-muted mb-0">Mode kelola cepat untuk pot, team, dan kalkulator score.</p>
+        
     </div>
     <div class="d-flex gap-2">
         <span class="badge <?= esc($badgeClass) ?> d-inline-flex align-items-center px-3"><?= esc($statusLabel) ?></span>
-        <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary">Kembali ke Dashboard</a>
+        <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary">Kembali</a>
         <a href="<?= site_url('tournaments/edit/' . $tournament['id']) ?>" class="btn btn-outline-dark">Edit Event</a>
     </div>
 </div>
@@ -26,10 +26,9 @@ $badgeClass = match ($status) {
     <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
             <div>
-                <h2 class="h5 mb-1">Tambah Pot Baru</h2>
-                <p class="text-muted mb-0">Buat pot, lalu langsung kelola team dan score di bawahnya.</p>
+                <h2 class="h5 mb-1">Tambah Pot</h2>
             </div>
-            <div class="small text-muted">Total pot: <?= esc((string) count($pots)) ?></div>
+            <div class="small text-muted"><?= esc((string) count($pots)) ?> pot</div>
         </div>
         <?= view('pots/form', [
             'action'      => site_url('pots/store'),
@@ -43,7 +42,7 @@ $badgeClass = match ($status) {
 <div class="mt-4">
     <?php if ($pots === []): ?>
         <div class="card stat-card">
-            <div class="card-body text-center text-muted py-5">Tambahkan pot pertama agar kalkulator event langsung bisa dipakai.</div>
+            <div class="card-body text-center text-muted py-5">Belum ada pot.</div>
         </div>
     <?php else: ?>
         <?php foreach ($pots as $pot): ?>

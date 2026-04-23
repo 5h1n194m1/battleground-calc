@@ -10,7 +10,6 @@
                 <div class="auth-brand-block">
                     <div class="auth-eyebrow">Battleground Calc</div>
                     <h1 class="auth-title">Daftar</h1>
-                    <p class="auth-subtitle">Buat akun baru untuk mengakses panel.</p>
                 </div>
 
                 <?php if (session('error') !== null) : ?>

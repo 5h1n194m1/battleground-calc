@@ -438,10 +438,9 @@ class ScoreController extends BaseController
             $this->teamMemberModel->where('team_id', (int) $resolvedTeamId)->delete();
             foreach ($members as $memberName) {
                 $this->teamMemberModel->insert([
-                    'team_id'         => (int) $resolvedTeamId,
-                    'registration_id' => null,
-                    'player_name'     => $memberName,
-                    'player_role'     => null,
+                    'team_id'     => (int) $resolvedTeamId,
+                    'player_name' => $memberName,
+                    'player_role' => null,
                 ]);
             }
         }

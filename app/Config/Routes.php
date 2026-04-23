@@ -35,14 +35,14 @@ $routes->get('pots/(:num)/teams', 'TeamController::index/$1', $adminFilters);
 $routes->get('pots/(:num)/scores', 'ScoreController::index/$1', $adminFilters);
 
 $routes->post('teams/store', 'TeamController::store', $adminFilters);
+$routes->get('teams/roster', 'TeamController::rosterIndex', $adminFilters);
 $routes->post('teams/update/(:num)', 'TeamController::update/$1', $adminFilters);
 $routes->post('teams/detach/(:num)', 'TeamController::detach/$1', $adminFilters);
 $routes->post('teams/delete/(:num)', 'TeamController::delete/$1', $adminFilters);
-$routes->post('teams/sync-members/(:num)', 'TeamController::syncMembers/$1', $adminFilters);
 $routes->get('teams/manager-data', 'TeamController::managerData', $adminFilters);
 
 $routes->post('scores/save', 'ScoreController::save', $adminFilters);
 $routes->post('scores/save-bulk', 'ScoreController::saveBulk', $adminFilters);
 
-$routes->get('imports/registrations', 'ImportController::registrations', $adminFilters);
-$routes->post('imports/registrations', 'ImportController::storeRegistrations', $adminFilters);
+$routes->get('imports/teams', 'ImportController::teams', $adminFilters);
+$routes->post('imports/teams', 'ImportController::storeTeams', $adminFilters);

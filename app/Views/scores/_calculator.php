@@ -53,18 +53,24 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
                 <?= $readonlyAttr ?>
             >
         </div>
+        <div class="pot-module-context-line">
+            <span class="pot-module-context-text">
+                <?= esc(($tournamentName ?? '') !== '' ? (string) $tournamentName : 'Tournament') ?> / <?= esc($pot['name'] ?? 'Pot') ?>
+            </span>
+        </div>
 
         <div class="pot-toolbar controller-only">
             <div class="pot-toolbar-group">
-                <button type="button" class="btn btn-outline-secondary btn-sm toolbar-btn js-add-team-row" <?= $disabledAttr ?>>Add Team</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm toolbar-btn js-add-team-row" <?= $disabledAttr ?>>Tambah</button>
                 <button
                     type="button"
                     class="btn btn-outline-success btn-sm toolbar-btn js-advance-selected"
                     data-advance-url="<?= site_url('pots/advance/' . $pot['id']) ?>"
                     <?= $disabledAttr ?>
                 >
-                    Lolos -> Pot Baru
+                    Naik Pot
                 </button>
+                <button type="button" class="btn btn-outline-info btn-sm toolbar-btn js-sort-standings">Urutkan</button>
 
                 <button type="button" class="btn btn-outline-primary btn-sm toolbar-btn js-add-game" id="<?= esc($addButtonId) ?>" <?= $disabledAttr ?>>+ Game</button>
                 <button type="button" class="btn btn-outline-danger btn-sm toolbar-btn js-remove-game" id="<?= esc($removeButtonId) ?>" <?= $disabledAttr ?>>- Game</button>
@@ -101,7 +107,6 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
                     <input type="file" class="form-control form-control-sm" name="reference_image_2" accept=".jpg,.jpeg,.png,.webp,.gif" <?= $disabledAttr ?>>
                 </div>
                 <div class="col-12">
-                    <div class="form-text mt-0">Format yang aman: .jpg, .jpeg, .png, .webp, .gif.</div>
                 </div>
                 <div class="col-md-2 d-grid">
                     <button type="submit" class="btn btn-sm btn-primary toolbar-btn" <?= $disabledAttr ?>>Upload</button>
@@ -271,8 +276,7 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
             </table>
             <?php if ($teams === []): ?>
                 <div class="pot-empty-state js-pot-empty-state">
-                    <div>Belum ada team di pot ini.</div>
-                    <div class="small text-muted mt-1">Klik Add Team untuk menambah row kosong, atau Team Manager untuk kelola roster.</div>
+                    <div>Belum ada team.</div>
                 </div>
             <?php endif; ?>
         </div>

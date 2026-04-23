@@ -9,7 +9,7 @@ class TeamMemberModel extends Model
     protected $table         = 'team_members';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['team_id', 'registration_id', 'player_name', 'player_role'];
+    protected $allowedFields = ['team_id', 'player_name', 'player_role'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
