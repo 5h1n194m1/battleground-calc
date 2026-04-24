@@ -14,6 +14,8 @@ use ZipArchive;
 class ImportController extends BaseController
 {
     private const MAX_MEMBERS = 6;
+    private const MAX_IMPORT_ROWS = 500;
+    private const MAX_XML_BYTES = 4_000_000;
 
     private TournamentModel $tournamentModel;
     private PotModel $potModel;
@@ -61,7 +63,7 @@ class ImportController extends BaseController
         if (! $this->validate([
             'team_file' => [
                 'label' => 'File import team',
-                'rules' => 'uploaded[team_file]|ext_in[team_file,csv,txt,xlsx]|max_size[team_file,8192]',
+                'rules' => 'uploaded[team_file]|mime_in[team_file,text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip]|ext_in[team_file,csv,txt,xlsx]|max_size[team_file,4096]',
             ],
         ])) {
             return redirect()->back()
@@ -79,9 +81,13 @@ class ImportController extends BaseController
         $selectedTournamentId = (int) ($this->request->getPost('tournament_id') ?? 0);
         $selectedPotId = (int) ($this->request->getPost('pot_id') ?? 0);
 
+        if ($selectedTournamentId <= 0) {
+            return redirect()->back()->withInput()->with('error', 'Pilih tournament terlebih dahulu sebelum import team.');
+        }
+
         if ($importMode === 'with_pot') {
-            if ($selectedTournamentId <= 0 || $selectedPotId <= 0) {
-                return redirect()->back()->withInput()->with('error', 'Mode dengan pot wajib memilih tournament dan pot.');
+            if ($selectedPotId <= 0) {
+                return redirect()->back()->withInput()->with('error', 'Mode dengan pot wajib memilih pot tujuan.');
             }
 
             $pot = $this->potModel->find($selectedPotId);
@@ -98,6 +104,10 @@ class ImportController extends BaseController
 
         if ($rows === []) {
             return redirect()->back()->withInput()->with('error', 'Tidak ada data team yang bisa diimport.');
+        }
+
+        if (count($rows) > self::MAX_IMPORT_ROWS) {
+            return redirect()->back()->withInput()->with('error', 'Import dibatasi maksimal ' . self::MAX_IMPORT_ROWS . ' baris per file.');
         }
 
         $db = db_connect();
@@ -122,7 +132,7 @@ class ImportController extends BaseController
         }
 
         foreach ($rows as $row) {
-            $teamId = $this->upsertImportedTeam($targetPotId, $row, $existingTeamsByScope);
+            $teamId = $this->upsertImportedTeam($targetPotId, $selectedTournamentId, $row, $existingTeamsByScope);
             $this->replaceTeamMembers($teamId, $row['players']);
         }
 
@@ -187,6 +197,10 @@ class ImportController extends BaseController
                 continue;
             }
             $rows[] = $columns;
+            if (count($rows) > self::MAX_IMPORT_ROWS) {
+                fclose($handle);
+                throw new RuntimeException('Import dibatasi maksimal ' . self::MAX_IMPORT_ROWS . ' baris per file.');
+            }
         }
 
         fclose($handle);
@@ -254,17 +268,17 @@ class ImportController extends BaseController
                 }
 
                 $players[] = [
-                    'player_name' => $playerName,
-                    'player_role' => $playerRole,
+                    'player_name' => $this->limitText($playerName, 80),
+                    'player_role' => $this->limitText($playerRole, 40),
                 ];
             }
 
             $result[] = [
-                'team_name'   => $teamName,
-                'leader_name' => $this->cellValue($row, $map['leader_name'] ?? null),
-                'whatsapp'    => $this->cellValue($row, $map['whatsapp'] ?? null),
-                'email'       => $this->cellValue($row, $map['email'] ?? null),
-                'notes'       => $this->cellValue($row, $map['notes'] ?? null),
+                'team_name'   => $this->limitText($teamName, 80),
+                'leader_name' => $this->limitText($this->cellValue($row, $map['leader_name'] ?? null), 80),
+                'whatsapp'    => $this->limitText($this->cellValue($row, $map['whatsapp'] ?? null), 40),
+                'email'       => $this->limitText($this->cellValue($row, $map['email'] ?? null), 120),
+                'notes'       => $this->limitText($this->cellValue($row, $map['notes'] ?? null), 255),
                 'players'     => $players,
             ];
         }
@@ -313,7 +327,7 @@ class ImportController extends BaseController
 
                 $seen[$normalized] = true;
                 $players[] = [
-                    'player_name' => $name,
+                    'player_name' => $this->limitText($name, 80),
                     'player_role' => '',
                 ];
 
@@ -323,11 +337,11 @@ class ImportController extends BaseController
             }
 
             $result[] = [
-                'team_name'   => $teamName,
-                'leader_name' => $this->cellValue($row, $leaderIndex),
-                'whatsapp'    => $this->cellValue($row, $phoneIndex),
-                'email'       => $this->cellValue($row, $emailIndex),
-                'notes'       => $this->cellValue($row, $notesIndex),
+                'team_name'   => $this->limitText($teamName, 80),
+                'leader_name' => $this->limitText($this->cellValue($row, $leaderIndex), 80),
+                'whatsapp'    => $this->limitText($this->cellValue($row, $phoneIndex), 40),
+                'email'       => $this->limitText($this->cellValue($row, $emailIndex), 120),
+                'notes'       => $this->limitText($this->cellValue($row, $notesIndex), 255),
                 'players'     => $players,
             ];
         }
@@ -335,6 +349,19 @@ class ImportController extends BaseController
         return $result;
     }
 
+    private function limitText(string $value, int $maxLength = 120): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $maxLength);
+        }
+
+        return substr($value, 0, $maxLength);
+    }
     private function detectDelimiter(string $sample): string
     {
         $candidates = [',', ';', "\t"];
@@ -361,6 +388,10 @@ class ImportController extends BaseController
 
         $sharedStrings = [];
         $sharedStringXml = $zip->getFromName('xl/sharedStrings.xml');
+        if ($sharedStringXml !== false && strlen($sharedStringXml) > self::MAX_XML_BYTES) {
+            $zip->close();
+            throw new RuntimeException('File XLSX terlalu besar untuk diproses.');
+        }
         if ($sharedStringXml !== false) {
             $sharedStrings = $this->readSharedStrings($sharedStringXml);
         }
@@ -369,6 +400,10 @@ class ImportController extends BaseController
         if ($sheetXml === false) {
             $zip->close();
             throw new RuntimeException('Sheet pertama XLSX tidak ditemukan.');
+        }
+        if (strlen($sheetXml) > self::MAX_XML_BYTES) {
+            $zip->close();
+            throw new RuntimeException('Sheet XLSX terlalu besar untuk diproses.');
         }
 
         $rows = $this->readSheetRows($sheetXml, $sharedStrings);
@@ -379,7 +414,7 @@ class ImportController extends BaseController
 
     private function readSharedStrings(string $xml): array
     {
-        $document = simplexml_load_string($xml);
+        $document = simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
         if (! $document instanceof SimpleXMLElement) {
             return [];
         }
@@ -402,7 +437,7 @@ class ImportController extends BaseController
 
     private function readSheetRows(string $xml, array $sharedStrings): array
     {
-        $document = simplexml_load_string($xml);
+        $document = simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
         if (! $document instanceof SimpleXMLElement) {
             return [];
         }
@@ -455,6 +490,9 @@ class ImportController extends BaseController
             }
 
             $rows[] = $row;
+            if (count($rows) > self::MAX_IMPORT_ROWS + 1) {
+                throw new RuntimeException('Import dibatasi maksimal ' . self::MAX_IMPORT_ROWS . ' baris per file.');
+            }
         }
 
         return $rows;
@@ -511,7 +549,7 @@ class ImportController extends BaseController
         return trim($header, '_');
     }
 
-    private function upsertImportedTeam(?int $potId, array $row, array &$existingTeamsByScope): int
+    private function upsertImportedTeam(?int $potId, int $tournamentId, array $row, array &$existingTeamsByScope): int
     {
         $normalizedName = $this->normalizeName($row['team_name']);
         $team = $existingTeamsByScope[$normalizedName] ?? null;
@@ -519,6 +557,7 @@ class ImportController extends BaseController
         if ($team !== null) {
             $teamId = (int) $team['id'];
             $this->teamModel->update($teamId, [
+                'tournament_id' => $tournamentId > 0 ? $tournamentId : null,
                 'pot_id' => $potId,
                 'name'   => $row['team_name'],
             ]);
@@ -530,6 +569,7 @@ class ImportController extends BaseController
             : $this->teamModel->where('pot_id IS NULL', null, false)->countAllResults() + 1;
 
         $teamId = (int) $this->teamModel->insert([
+            'tournament_id' => $tournamentId > 0 ? $tournamentId : null,
             'pot_id'     => $potId,
             'name'       => $row['team_name'],
             'sort_order' => $nextSortOrder,
@@ -537,6 +577,7 @@ class ImportController extends BaseController
 
         $existingTeamsByScope[$normalizedName] = [
             'id'        => $teamId,
+            'tournament_id' => $tournamentId > 0 ? $tournamentId : null,
             'pot_id'    => $potId,
             'name'      => $row['team_name'],
             'sort_order'=> $nextSortOrder,
@@ -564,7 +605,7 @@ class ImportController extends BaseController
             $seen[$normalized] = true;
             $this->teamMemberModel->insert([
                 'team_id'     => $teamId,
-                'player_name' => $playerName,
+                'player_name' => $this->limitText($playerName, 80),
                 'player_role' => ! empty($player['player_role']) ? (string) $player['player_role'] : null,
             ]);
         }

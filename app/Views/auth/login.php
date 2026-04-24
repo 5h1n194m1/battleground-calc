@@ -6,7 +6,14 @@
 <?php
     $rawError = session('error');
     $displayError = $rawError;
-    if (is_string($displayError) && trim($displayError) === 'The action you requested is not allowed.') {
+    $expired = service('request')->getGet('expired') === '1';
+    $throttled = service('request')->getGet('throttled') === '1';
+
+    if ($expired) {
+        $displayError = 'Sesi berakhir, silakan login kembali.';
+    } elseif ($throttled) {
+        $displayError = 'Terlalu banyak percobaan login. Tunggu sebentar lalu coba lagi.';
+    } elseif (is_string($displayError) && trim($displayError) === 'The action you requested is not allowed.') {
         $displayError = 'Sesi berakhir, silakan login kembali.';
     }
 ?>
@@ -60,12 +67,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                            <label for="loginPassword" class="form-label auth-label mb-0">Password</label>
-                            <?php if (setting('Auth.allowMagicLinkLogins')) : ?>
-                                <a href="<?= url_to('magic-link') ?>" class="auth-inline-link">Magic link</a>
-                            <?php endif ?>
-                        </div>
+                        <label for="loginPassword" class="form-label auth-label mb-1">Password</label>
                         <input
                             type="password"
                             class="form-control"
@@ -81,13 +83,6 @@
                         <button type="submit" class="btn btn-primary auth-submit-btn">Login</button>
                     </div>
                 </form>
-
-                <?php if (setting('Auth.allowRegistration')) : ?>
-                    <div class="auth-footer-note">
-                        Belum punya akun?
-                        <a href="<?= url_to('register') ?>">Daftar</a>
-                    </div>
-                <?php endif ?>
             </div>
         </section>
     </div>

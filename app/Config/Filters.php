@@ -4,13 +4,9 @@ namespace Config;
 
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
-use CodeIgniter\Filters\CSRF;
-use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\ForceHTTPS;
 use CodeIgniter\Filters\Honeypot;
 use CodeIgniter\Filters\InvalidChars;
-use CodeIgniter\Filters\PageCache;
-use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
 
 class Filters extends BaseFilters
@@ -19,25 +15,23 @@ class Filters extends BaseFilters
      * @var array<string, class-string|list<class-string>>
      */
     public array $aliases = [
-        'csrf'          => CSRF::class,
-        'toolbar'       => DebugToolbar::class,
+        'csrf'          => \App\Filters\GracefulCsrfFilter::class,
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
         'cors'          => Cors::class,
         'forcehttps'    => ForceHTTPS::class,
-        'pagecache'     => PageCache::class,
-        'performance'   => PerformanceMetrics::class,
 
-        // Shield / auth
         'session'       => \CodeIgniter\Shield\Filters\SessionAuth::class,
         'group'         => \CodeIgniter\Shield\Filters\GroupFilter::class,
         'permission'    => \CodeIgniter\Shield\Filters\PermissionFilter::class,
         'chain'         => \CodeIgniter\Shield\Filters\ChainAuth::class,
         'tokens'        => \CodeIgniter\Shield\Filters\TokenAuth::class,
 
-        // App custom
         'idle'          => \App\Filters\IdleTimeoutFilter::class,
+        'localonly'     => \App\Filters\LocalOnlyFilter::class,
+        'auththrottle'  => \App\Filters\AuthThrottleFilter::class,
+        'appheaders'    => \App\Filters\AppSecurityHeadersFilter::class,
     ];
 
     /**
@@ -45,13 +39,11 @@ class Filters extends BaseFilters
      */
     public array $required = [
         'before' => [
-            'forcehttps',
-            'pagecache',
+            'localonly',
+            'invalidchars',
         ],
         'after' => [
-            'pagecache',
-            'performance',
-            'toolbar',
+            'appheaders',
         ],
     ];
 
@@ -65,8 +57,7 @@ class Filters extends BaseFilters
         'before' => [
             'csrf',
         ],
-        'after' => [
-        ],
+        'after' => [],
     ];
 
     /**
@@ -77,5 +68,16 @@ class Filters extends BaseFilters
     /**
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+        'auththrottle' => [
+            'before' => [
+                'login',
+                'login/*',
+                'register',
+                'register/*',
+                'magic-link',
+                'magic-link/*',
+            ],
+        ],
+    ];
 }

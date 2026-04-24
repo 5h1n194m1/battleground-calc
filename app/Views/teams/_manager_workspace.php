@@ -11,6 +11,8 @@ $currentTournamentId = (int) ($currentTournamentId ?? 0);
 $currentPotId = (int) ($currentPotId ?? 0);
 $canManage = $canManage ?? true;
 $allowUnassigned = $allowUnassigned ?? false;
+$showTournamentFilter = $showTournamentFilter ?? true;
+$fixedTournamentId = (int) ($fixedTournamentId ?? $selectedTournamentId);
 ?>
 <div
     class="team-manager-workspace js-team-manager-workspace"
@@ -25,6 +27,8 @@ $allowUnassigned = $allowUnassigned ?? false;
     data-selected-pot-id="<?= esc((string) $selectedPotId) ?>"
     data-current-tournament-id="<?= esc((string) $currentTournamentId) ?>"
     data-current-pot-id="<?= esc((string) $currentPotId) ?>"
+    data-fixed-tournament-id="<?= esc((string) $fixedTournamentId) ?>"
+    data-show-tournament-filter="<?= $showTournamentFilter ? '1' : '0' ?>"
     data-can-manage="<?= $canManage ? '1' : '0' ?>"
     data-allow-unassigned="<?= $allowUnassigned ? '1' : '0' ?>"
 >
@@ -39,16 +43,18 @@ $allowUnassigned = $allowUnassigned ?? false;
         </div>
 
         <div class="team-manager-toolbar-row">
-            <div class="team-manager-filter">
-                <label class="form-label">Tournament</label>
-                <select class="form-select form-select-sm js-manager-tournament" <?= $canManage ? '' : 'disabled' ?>>
-                    <?php foreach ($tournaments as $tournament): ?>
-                        <option value="<?= esc((string) $tournament['id']) ?>" <?= (int) $tournament['id'] === $selectedTournamentId ? 'selected' : '' ?>>
-                            <?= esc($tournament['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <?php if ($showTournamentFilter): ?>
+                <div class="team-manager-filter">
+                    <label class="form-label">Tournament</label>
+                    <select class="form-select form-select-sm js-manager-tournament" <?= $canManage ? '' : 'disabled' ?>>
+                        <?php foreach ($tournaments as $tournament): ?>
+                            <option value="<?= esc((string) $tournament['id']) ?>" <?= (int) $tournament['id'] === $selectedTournamentId ? 'selected' : '' ?>>
+                                <?= esc($tournament['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
 
             <div class="team-manager-filter">
                 <label class="form-label">Pot</label>

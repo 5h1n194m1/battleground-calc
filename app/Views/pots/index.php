@@ -4,10 +4,10 @@
 <?php
 $status = $tournament['status'] ?? 'belum_mulai';
 $statusLabel = $statusOptions[$status] ?? ucwords(str_replace('_', ' ', $status));
-$badgeClass = match ($status) {
-    'start' => 'text-bg-success',
-    'selesai' => 'text-bg-secondary',
-    default => 'text-bg-warning',
+$statusClass = match ($status) {
+    'start' => 'status-chip-live',
+    'selesai' => 'status-chip-finished',
+    default => 'status-chip-standby',
 };
 ?>
 <div class="page-header">
@@ -16,7 +16,7 @@ $badgeClass = match ($status) {
         
     </div>
     <div class="d-flex gap-2">
-        <span class="badge <?= esc($badgeClass) ?> d-inline-flex align-items-center px-3"><?= esc($statusLabel) ?></span>
+        <span class="status-chip <?= esc($statusClass) ?>"><span class="status-chip-dot" aria-hidden="true"></span><?= esc($statusLabel) ?></span>
         <a href="<?= site_url('dashboard') ?>" class="btn btn-outline-secondary">Kembali</a>
         <a href="<?= site_url('tournaments/edit/' . $tournament['id']) ?>" class="btn btn-outline-dark">Edit Event</a>
     </div>

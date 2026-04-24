@@ -10,6 +10,7 @@ $adminFilters   = ['filter' => ['session', 'idle', 'group:admin']];
 
 $routes->get('/', 'Dashboard::index', $sessionFilters);
 $routes->get('dashboard', 'Dashboard::index', $sessionFilters);
+$routes->get('session/keep-alive', 'Dashboard::keepAlive', $sessionFilters);
 $routes->get('leaderboard/pot/(:num)', 'LeaderboardController::pot/$1', $sessionFilters);
 
 $routes->get('register', '\App\Controllers\Auth\RegisterController::registerView');
@@ -36,6 +37,9 @@ $routes->get('pots/(:num)/scores', 'ScoreController::index/$1', $adminFilters);
 
 $routes->post('teams/store', 'TeamController::store', $adminFilters);
 $routes->get('teams/roster', 'TeamController::rosterIndex', $adminFilters);
+$routes->get('teams/export-template', 'TeamController::exportTemplate', $adminFilters);
+$routes->get('teams/export-template/csv/(:num)', 'TeamController::downloadTemplateCsv/$1', $adminFilters);
+$routes->post('teams/bulk-update', 'TeamController::bulkUpdate', $adminFilters);
 $routes->post('teams/update/(:num)', 'TeamController::update/$1', $adminFilters);
 $routes->post('teams/detach/(:num)', 'TeamController::detach/$1', $adminFilters);
 $routes->post('teams/delete/(:num)', 'TeamController::delete/$1', $adminFilters);

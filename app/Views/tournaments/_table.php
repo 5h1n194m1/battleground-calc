@@ -20,15 +20,15 @@
                             <?php
                             $status = $tournament['status'] ?? 'belum_mulai';
                             $statusLabel = $statusOptions[$status] ?? ucwords(str_replace('_', ' ', $status));
-                            $badgeClass = match ($status) {
-                                'start' => 'text-bg-success',
-                                'selesai' => 'text-bg-secondary',
-                                default => 'text-bg-warning',
+                            $statusClass = match ($status) {
+                                'start' => 'status-chip-live',
+                                'selesai' => 'status-chip-finished',
+                                default => 'status-chip-standby',
                             };
                             ?>
                             <tr>
                                 <td class="fw-semibold"><?= esc($tournament['name']) ?></td>
-                                <td><span class="badge <?= esc($badgeClass) ?>"><?= esc($statusLabel) ?></span></td>
+                                <td><span class="status-chip <?= esc($statusClass) ?>"><span class="status-chip-dot" aria-hidden="true"></span><?= esc($statusLabel) ?></span></td>
                                 <td class="text-center"><?= esc((string) $tournament['pot_count']) ?></td>
                                 <td class="text-center"><?= esc((string) $tournament['team_count']) ?></td>
                                 <td><?= esc(date('d M Y H:i', strtotime((string) $tournament['created_at']))) ?></td>
@@ -36,7 +36,7 @@
                                     <div class="d-inline-flex gap-2">
                                         <a href="<?= site_url('tournaments/' . $tournament['id'] . '/pots') ?>" class="btn btn-sm btn-outline-primary">Buka</a>
                                         <a href="<?= site_url('tournaments/edit/' . $tournament['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form action="<?= site_url('tournaments/delete/' . $tournament['id']) ?>" method="post" onsubmit="return confirm('Hapus tournament ini beserta seluruh data turunannya?');">
+                                        <form action="<?= site_url('tournaments/delete/' . $tournament['id']) ?>" method="post" data-confirm="Hapus tournament ini beserta seluruh data turunannya?">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
                                         </form>

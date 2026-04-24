@@ -21,9 +21,9 @@ class TournamentModel extends Model
     public static function statusOptions(): array
     {
         return [
-            self::STATUS_BELUM_MULAI => 'Belum Mulai',
-            self::STATUS_START       => 'Start',
-            self::STATUS_SELESAI     => 'Selesai',
+            self::STATUS_BELUM_MULAI => 'Standby',
+            self::STATUS_START       => 'Live',
+            self::STATUS_SELESAI     => 'Finished',
         ];
     }
 }

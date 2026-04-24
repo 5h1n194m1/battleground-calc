@@ -463,6 +463,26 @@ File utama:
 - `public/assets/js/score-workspace.js`
 - `public/assets/css/dark-app.css`
 
+6. Import Team sekarang wajib pilih tournament di halaman import
+- kebutuhan terbaru:
+  - penentuan tournament dilakukan dari halaman `Import Team`
+  - Team Manager di halaman import tidak perlu lagi memilih tournament
+  - Team Manager cukup fokus ke pot
+- keputusan implementasi:
+  - `tournament_id` sekarang wajib dipilih sebelum import
+  - di halaman `imports/teams`, selector tournament dipindah ke kontrol utama halaman
+  - Team Manager import menyembunyikan filter tournament
+  - saat tournament di halaman import diganti, halaman reload dengan query baru agar daftar pot dan team manager ikut sinkron
+  - mode import tetap ada:
+    - `Belum Masuk Pot`
+    - `Langsung ke Pot`
+
+File utama:
+- `app/Controllers/ImportController.php`
+- `app/Views/imports/teams.php`
+- `app/Views/teams/_manager_workspace.php`
+- `public/assets/js/score-workspace.js`
+
 ==================================================
 FILE PALING SERING MENJADI PUSAT PATCH
 ==================================================
@@ -523,3 +543,235 @@ Update 2026-04-23 - stabilitas auth/session:
 - Gagal CSRF tidak lagi menampilkan 403 mentah; diarahkan kembali dengan pesan yang lebih halus.
 - Halaman auth diberi no-cache ringan agar token/form lama tidak mudah muncul dari browser cache.
 - Pesan idle timeout/login ulang diseragamkan menjadi: 'Sesi berakhir, silakan login kembali.'
+
+Update 2026-04-23 - tournament context + sesi warning:
+- `teams.tournament_id` sekarang benar-benar ada di database produksi/lokal aktif:
+  - kolom dibuat manual langsung di MySQL karena schema lama belum ikut berubah
+  - tipe final disamakan ke `INT UNSIGNED` agar cocok dengan `tournaments.id`
+  - index `teams_tournament_id_index` dan foreign key `teams_tournament_id_foreign` aktif
+  - data lama yang sudah punya `pot_id` dibackfill otomatis ke tournament terkait
+- alasan penting:
+  - roster/import sekarang memang mengandalkan team yang bisa punya tournament walau belum masuk pot
+  - error `Unknown column 'teams.tournament_id'` harus dianggap blocker utama jika muncul lagi
+- layout utama sekarang punya popup warning sesi habis:
+  - muncul sekitar 60 detik sebelum idle timeout 5 menit
+  - tombol `Tetap Login` memanggil endpoint keep-alive
+  - tombol `Logout Sekarang` langsung keluar
+  - tujuan utamanya mengurangi kejadian submit/form saat sesi ternyata sudah mati
+
+File utama:
+- `app/Controllers/Dashboard.php`
+- `app/Config/Routes.php`
+- `app/Views/layouts/main.php`
+- `public/assets/css/dark-app.css`
+- `app/Database/Migrations/2026-04-23-100500_AddTournamentIdToTeamsTable.php`
+
+Update 2026-04-23 - roster semua team + import lebih compact:
+- halaman `Daftar Team` sekarang tidak lagi memaksa hanya melihat 1 tournament saja
+- filter roster punya 3 mode utama:
+  - `Semua Team`
+  - `Belum Ada Tournament`
+  - tournament spesifik
+- tujuannya supaya team lama yang belum punya `tournament_id` tetap muncul dan bisa dibersihkan
+- dari roster, admin sekarang bisa langsung:
+  - ubah nama team
+  - ubah anggota
+  - ubah tournament team
+  - ubah pot team
+  - hapus team
+- catatan penting:
+  - dropdown tournament di roster dipakai terutama untuk team tanpa pot
+  - jika pot dipilih, tournament final tetap mengikuti pot tujuan
+
+- halaman `Import Team` dibuat lebih compact:
+  - jarak vertikal dipadatkan
+  - card upload dibuat lebih ringkas
+  - `Penempatan Awal` dan `Pot` disusun 2 kolom agar tidak memanjang ke bawah
+  - copy penjelasan dipersingkat
+
+File utama:
+- `app/Controllers/TeamController.php`
+- `app/Views/teams/roster_index.php`
+- `app/Views/imports/teams.php`
+- `public/assets/css/dark-app.css`
+
+Update 2026-04-23 — Roster bulk save stabilization
+- Audit latest uploaded project and trace `teams/roster` bulk save from view to TeamController.
+- Fix runtime bug in TeamController update path caused by wrong method call (`allowsUnassigned()` -> `allowsUnassignedTeams()`).
+- Stabilize roster bulk save so `Simpan Semua` only submits rows that actually changed.
+- Add original snapshot fields per row for name, members, tournament, and pot comparison.
+- Allow legacy unassigned teams to stay unassigned during roster maintenance, so untouched rows without tournament no longer break bulk save.
+- Keep patch limited to roster maintenance flow and context documentation.
+
+Update 2026-04-23 - roster save + score pot autosave:
+- `Daftar Team` bulk save sempat kena dua masalah:
+  - submit massal `teams/bulk-update` bisa gagal karena form utama terlalu tersembunyi dan CSRF tidak selalu ikut sinkron
+  - ganti `tournament` pada team yang masih menempel ke pot lama terlihat tidak tersimpan karena `pot` lama menimpa tournament baru
+- perbaikan yang sudah aktif:
+  - form bulk roster dipindah jadi form utama yang nyata di card, bukan hidden shell
+  - submit bulk sekarang memanggil sync CSRF lagi tepat saat submit
+  - jika tournament diganti dan pot lama berasal dari tournament lain, pot lama otomatis dilepas lebih dulu
+  - hasil yang diharapkan: `Simpan` dan `Simpan Semua` sama-sama bisa menyimpan perubahan tournament dengan normal
+
+- halaman score juga diperbarui:
+  - tombol `Tambah Pot` dikembalikan ke toolbar atas halaman score
+  - input nama pot dan urutan pot sekarang autosave via AJAX ke `pots/update`
+  - input pot tidak lagi salah ikut masuk ke jalur `scores/save-bulk`
+  - preview teks `Tournament / Pot` ikut update langsung saat nama pot diubah
+  - ukuran nama pot diperbesar dan dibuat auto-adjust agar lebih dekat dengan gaya judul tournament
+
+File utama:
+- `app/Views/teams/roster_index.php`
+- `app/Controllers/TeamController.php`
+- `app/Views/scores/index.php`
+- `app/Views/scores/_calculator.php`
+- `public/assets/js/score-workspace.js`
+- `public/assets/css/dark-app.css`
+
+Catatan kerja:
+- setiap perubahan perilaku, layout, route, controller, JS autosave, atau schema harus ikut diringkas ke `konteks.txt`
+- fokus `konteks.txt` adalah keputusan penting, file utama yang tersentuh, dan risiko regresi; bukan changelog mentah per baris
+
+Update 2026-04-23 - fix autosave judul pot:
+- bug terbaru:
+  - ganti nama/urutan pot di halaman score masih terasa tidak tersimpan walau jalur AJAX `pots/update` sudah ditambahkan
+- akar masalah:
+  - autosave pot dan autosave score masih berbagi state/timer yang sama di `score-workspace.js`
+  - saat save score sedang aktif, antrean save pot bisa tertahan lalu tidak pernah menembak request yang benar
+- perbaikan:
+  - autosave metadata pot sekarang punya antrian sendiri:
+    - `metaSaving`
+    - `metaSaveQueued`
+    - `_metaSaveTimer`
+  - autosave score tetap memakai state lama:
+    - `saving`
+    - `saveQueued`
+    - `_saveTimer`
+- hasil yang diharapkan:
+  - edit judul pot tetap mengirim AJAX ke `pots/update`
+  - edit score/team tetap mengirim AJAX ke `scores/save-bulk`
+  - keduanya tidak saling menelan request lagi
+
+File utama:
+- `public/assets/js/score-workspace.js`
+
+Tambahan temuan penting:
+- input `pot_name` dan `pot_sort_order` berada di luar elemen `<form>` score utama dan hanya terhubung lewat atribut `form="..."`
+- akibatnya, query JS yang hanya mencari elemen di dalam node form tidak akan menemukan input judul pot
+- fix lanjutan:
+  - autosave pot sekarang membaca field terkait lewat selector berbasis `form="<formId>"`
+  - binding event untuk `js-pot-input` juga diambil dari elemen yang terasosiasi ke form, bukan hanya child node form
+
+Fix final 2026-04-23 - pot kosong tetap bisa simpan nama:
+- dugaan berikutnya terbukti penting:
+  - logic simpan judul pot masih terlalu menempel ke form score utama
+  - ini berisiko membuat rename pot terasa bergantung pada ada/tidaknya team atau state tabel score
+- solusi final:
+  - dibuat form khusus terpisah `js-pot-meta-form` untuk metadata pot
+  - input `pot_name` dan `pot_sort_order` sekarang terikat ke form khusus itu, bukan ke `scores/save-bulk`
+  - JS baru `bindPotMetaForms()` mengurus autosave pot secara mandiri
+- hasil yang diharapkan:
+  - rename pot tetap bisa tersimpan walaupun pot kosong total
+  - score/team tetap memakai jalur save bulk sendiri
+  - autosave pot dan autosave score sekarang benar-benar terpisah secara struktur HTML dan binding JS
+
+File utama:
+- `app/Views/scores/_calculator.php`
+- `public/assets/js/score-workspace.js`
+
+Update 2026-04-23 - global burger menu dibuat lebih profesional:
+- navigasi horizontal di header sudah dihapus; akses utama admin sekarang difokuskan ke burger menu / global CMS
+- burger menu dirapikan agar terasa lebih profesional dan lebih dinamis, tapi tetap ringan:
+  - tombol toggle dibuat lebih tegas dan rapi
+  - sidebar diberi hierarki visual yang lebih jelas
+  - menu utama sekarang punya label + deskripsi singkat per item
+  - ditambahkan context card untuk menandai halaman aktif dan fungsi area yang sedang dibuka
+- efek visual dijaga tetap tipis:
+  - hanya hover ringan
+  - tidak ada animasi berat / efek berlapis yang berisiko membebani web app
+- arah visual tetap mengikuti baseline project:
+  - dark mode only
+  - compact
+  - admin workspace / CMS feel
+  - tidak memakai gaya flashy yang bertabrakan dengan fungsi score page
+
+File utama:
+- `app/Views/partials/global_cms.php`
+- `app/Views/partials/navbar.php`
+- `public/assets/css/dark-app.css`
+
+Update 2026-04-23 - wording status dibuat lebih gamer-modern:
+- label status tournament di UI diganti agar lebih modern dan lebih cocok untuk panel event game:
+  - `belum_mulai` => `Standby`
+  - `start` => `Live`
+  - `selesai` => `Finished`
+- status sekarang memakai chip bertitik agar lebih cepat terbaca:
+  - `Live` = hijau + pulse ringan
+  - `Standby` = slate / abu gelap
+  - `Finished` = ungu lembut
+- perubahan ini hanya pada wording dan presentasi visual; state database tetap:
+  - `belum_mulai`
+  - `start`
+  - `selesai`
+
+File utama:
+- `app/Models/TournamentModel.php`
+- `app/Views/dashboard/index.php`
+- `app/Views/pots/index.php`
+- `app/Views/scores/index.php`
+- `app/Views/tournaments/_table.php`
+- `public/assets/css/dark-app.css`
+
+Update 2026-04-24 - security hardening gabungan dari patch terbaru:
+- Patch terbaru dari pasted text digabung ke project aktif tanpa mengubah logic bisnis Team Manager, score workspace, roster, atau import tournament context.
+- Global `pagecache` di `app/Config/Filters.php` dihapus dari required filters karena berisiko menyajikan form lama dan token CSRF basi pada aplikasi login/stateful.
+- CSRF sekarang memakai `App\Filters\GracefulCsrfFilter` agar kegagalan token diarahkan ke pesan login/expired yang lebih halus, termasuk response JSON untuk AJAX.
+- Ditambahkan filter custom:
+  - `app/Filters/LocalOnlyFilter.php`
+  - `app/Filters/AppSecurityHeadersFilter.php`
+  - `app/Filters/AuthThrottleFilter.php`
+  - `app/Filters/GracefulCsrfFilter.php`
+- Config security/session/CSP diperkeras:
+  - `app/Config/Security.php`
+  - `app/Config/Session.php`
+  - `app/Config/ContentSecurityPolicy.php`
+  - `app/Config/App.php`
+  - `.env`
+- `app/Views/layouts/main.php` tidak lagi menyimpan shell JS inline besar; shell dipindah ke `public/assets/js/app-shell.js` agar lebih ramah CSP.
+- Semua form POST tetap disinkronkan CSRF oleh `window.BGApp.syncAllPostForms()` dan confirm inline diganti ke `data-confirm` / `data-confirm-click`.
+- Upload screenshot pot diperkeras dengan `public/uploads/.htaccess`, `public/uploads/index.html`, dan `PotController::ensureUploadDirectory()`.
+- Import team dibatasi dan diperkeras:
+  - maksimal 500 baris per file
+  - maksimal XML XLSX 4 MB per bagian penting
+  - validasi MIME/ekstensi/ukuran file lebih ketat
+  - parsing XML memakai `LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING`
+  - panjang nama team/player/contact/notes dipotong agar tidak membuat data abnormal masuk database
+- Auth Shield diperketat:
+  - registration disabled
+  - magic link disabled
+  - minimum password length 12
+- Catatan lokal penting:
+  - `LocalOnlyFilter` hanya mengizinkan host `localhost` / `127.0.0.1` dan IP lokal.
+  - Jika aplikasi ingin dibuka dari device lain/LAN/hosting, filter `localonly` harus disesuaikan atau dilepas dari required filters.
+
+File utama:
+- `.env`
+- `app/Config/App.php`
+- `app/Config/Filters.php`
+- `app/Config/Security.php`
+- `app/Config/Session.php`
+- `app/Config/ContentSecurityPolicy.php`
+- `app/Config/Auth.php`
+- `app/Filters/LocalOnlyFilter.php`
+- `app/Filters/AppSecurityHeadersFilter.php`
+- `app/Filters/AuthThrottleFilter.php`
+- `app/Filters/GracefulCsrfFilter.php`
+- `app/Views/auth/layout.php`
+- `app/Views/auth/login.php`
+- `app/Views/layouts/main.php`
+- `public/assets/js/app-shell.js`
+- `app/Controllers/ImportController.php`
+- `app/Controllers/PotController.php`
+- `public/uploads/.htaccess`
+- `public/uploads/index.html`
+- `public/robots.txt`

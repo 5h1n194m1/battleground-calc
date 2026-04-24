@@ -4,10 +4,10 @@
 <?php
 $status = $tournament['status'] ?? 'belum_mulai';
 $statusLabel = $statusOptions[$status] ?? ucwords(str_replace('_', ' ', $status));
-$badgeClass = match ($status) {
-    'start' => 'text-bg-success',
-    'selesai' => 'text-bg-secondary',
-    default => 'text-bg-warning',
+$statusClass = match ($status) {
+    'start' => 'status-chip-live',
+    'selesai' => 'status-chip-finished',
+    default => 'status-chip-standby',
 };
 $isAdmin = auth()->user()?->inGroup('admin') ?? false;
 $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
@@ -35,7 +35,7 @@ $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
 
         <div class="score-page-actions">
             <div class="score-page-actions-left">
-                <span class="badge <?= esc($badgeClass) ?> status-chip"><?= esc($statusLabel) ?></span>
+                <span class="status-chip <?= esc($statusClass) ?>"><span class="status-chip-dot" aria-hidden="true"></span><?= esc($statusLabel) ?></span>
 
                 <?php if ($isAdmin): ?>
                     <button type="button" class="btn btn-outline-primary btn-sm app-btn controller-only" data-bs-toggle="modal" data-bs-target="#statusTournamentModal">
@@ -52,6 +52,17 @@ $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
                     <button type="button" class="btn btn-outline-secondary btn-sm app-btn js-score-text-zoom" data-zoom-action="reset">Normal</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm app-btn js-score-text-zoom" data-zoom-action="increase">Teks +</button>
                 </div>
+
+                <a href="<?= site_url('teams/export-template?tournament_id=' . (int) $tournament['id']) ?>" class="btn btn-outline-primary btn-sm app-btn controller-only">Export CSV</a>
+
+                <?php if ($canManage): ?>
+                    <form action="<?= site_url('pots/store') ?>" method="post" class="m-0 d-inline-flex controller-only">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="tournament_id" value="<?= esc((string) $tournament['id']) ?>">
+                        <input type="hidden" name="redirect_to" value="__new_pot_scores__">
+                        <button type="submit" class="btn btn-outline-primary btn-sm app-btn">Tambah Pot</button>
+                    </form>
+                <?php endif; ?>
 
                 <button
                     type="button"

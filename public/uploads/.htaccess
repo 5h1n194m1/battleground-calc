@@ -1,0 +1,8 @@
+Options -Indexes
+<FilesMatch "\.(php|phar|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Require all denied
+</FilesMatch>
+RemoveHandler .php .phtml .phar .pl .py .jsp .asp .sh .cgi
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

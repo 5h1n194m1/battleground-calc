@@ -27,7 +27,7 @@
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
                                         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editTeamModal<?= $team['id'] ?>">Edit</button>
-                                        <form action="<?= site_url('teams/delete/' . $team['id']) ?>" method="post" onsubmit="return confirm('Hapus team ini?');">
+                                        <form action="<?= site_url('teams/delete/' . $team['id']) ?>" method="post" data-confirm="Hapus team ini?">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
                                         </form>

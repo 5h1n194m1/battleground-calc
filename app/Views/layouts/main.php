@@ -5,14 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= esc($pageTitle ?? 'Battleground Calc') ?></title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="<?= base_url('assets/css/dark-app.css?v=' . (@filemtime(FCPATH . 'assets/css/dark-app.css') ?: time())) ?>" rel="stylesheet">
 </head>
 <?php
 $layoutUser = auth()->user();
 $hasGlobalCms = $layoutUser !== null && $layoutUser->inGroup('admin');
 ?>
-<body class="app-dark<?= $hasGlobalCms ? ' has-global-cms' : '' ?>">
+<body
+    class="app-dark<?= $hasGlobalCms ? ' has-global-cms' : '' ?>"
+    data-bg-base-url="<?= esc(site_url('/'), 'attr') ?>"
+    data-bg-csrf-token-name="<?= esc(csrf_token(), 'attr') ?>"
+    data-bg-csrf-hash="<?= esc(csrf_hash(), 'attr') ?>"
+    data-bg-idle-timeout-seconds="300"
+    data-bg-idle-warning-seconds="60"
+    data-bg-idle-logout-url="<?= esc(site_url('logout'), 'attr') ?>"
+    data-bg-keep-alive-url="<?= esc(site_url('session/keep-alive'), 'attr') ?>"
+>
     <?= $this->include('partials/navbar') ?>
     <?php if ($hasGlobalCms): ?>
         <?= $this->include('partials/global_cms') ?>
@@ -25,191 +34,23 @@ $hasGlobalCms = $layoutUser !== null && $layoutUser->inGroup('admin');
         </div>
     </main>
 
+    <div id="sessionWarningModal" class="session-warning-modal" hidden>
+        <div class="session-warning-card" role="dialog" aria-modal="true" aria-labelledby="sessionWarningTitle">
+            <div class="session-warning-title" id="sessionWarningTitle">Sesi Akan Berakhir</div>
+            <div class="session-warning-body">
+                Anda akan logout otomatis dalam <strong class="js-session-warning-countdown">60</strong> detik karena tidak ada aktivitas.
+            </div>
+            <div class="session-warning-actions">
+                <button type="button" class="btn btn-outline-secondary btn-sm js-session-warning-logout">Logout Sekarang</button>
+                <button type="button" class="btn btn-primary btn-sm js-session-warning-keepalive">Tetap Login</button>
+            </div>
+        </div>
+    </div>
+
     <?= $this->include('partials/footer') ?>
 
-    <script>
-        window.BGApp = {
-            csrfTokenName: '<?= esc(csrf_token()) ?>',
-            csrfHash: '<?= esc(csrf_hash()) ?>',
-            baseUrl: '<?= site_url('/') ?>',
-            idleTimeoutSeconds: 300,
-            idleLogoutUrl: '<?= site_url('logout') ?>',
-            idleTimer: null,
-
-            resetIdleTimer() {
-                if (!this.idleTimeoutSeconds || !this.idleLogoutUrl) {
-                    return;
-                }
-
-                window.clearTimeout(this.idleTimer);
-                this.idleTimer = window.setTimeout(() => {
-                    window.location.href = this.idleLogoutUrl;
-                }, this.idleTimeoutSeconds * 1000);
-            },
-
-            startIdleWatcher() {
-                const activityEvents = ['mousedown', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-                const reset = () => this.resetIdleTimer();
-
-                activityEvents.forEach((eventName) => {
-                    window.addEventListener(eventName, reset, { passive: true });
-                });
-
-                this.resetIdleTimer();
-            },
-
-            ensureFormCsrf(form) {
-                if (!form || !this.csrfTokenName || !this.csrfHash) {
-                    return;
-                }
-
-                let input = form.querySelector(`input[name="${this.csrfTokenName}"]`);
-                if (!input) {
-                    form.querySelectorAll('input[type="hidden"]').forEach((hidden) => {
-                        if (/csrf/i.test(hidden.name || '')) {
-                            hidden.remove();
-                        }
-                    });
-
-                    input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = this.csrfTokenName;
-                    form.prepend(input);
-                }
-                input.value = this.csrfHash;
-            },
-
-            syncAllPostForms() {
-                document.querySelectorAll('form').forEach((form) => {
-                    const method = (form.getAttribute('method') || 'get').toLowerCase();
-                    if (method === 'post') {
-                        this.ensureFormCsrf(form);
-                    }
-                });
-            },
-
-            showFlash() {
-                return;
-            },
-
-            updateCsrf(tokenName, tokenHash) {
-                if (!tokenName || !tokenHash) return;
-                this.csrfTokenName = tokenName;
-                this.csrfHash = tokenHash;
-                this.syncAllPostForms();
-            },
-
-            initGlobalCms() {
-                const body = document.body;
-                const sidebar = document.getElementById('globalCmsPanel');
-                const toggleButtons = Array.from(document.querySelectorAll('.js-global-cms-toggle'));
-                const backdrop = document.querySelector('.js-global-cms-backdrop');
-                const searchInput = document.querySelector('.js-global-cms-search');
-                const items = Array.from(document.querySelectorAll('[data-global-cms-item]'));
-                const collapseKey = 'bgcalc-global-cms-collapsed';
-
-                if (!sidebar || toggleButtons.length === 0) {
-                    return;
-                }
-
-                const syncToggleState = () => {
-                    const expanded = !(body.classList.contains('app-global-cms-collapsed') || body.classList.contains('app-global-cms-mobile-open'));
-                    toggleButtons.forEach((button) => {
-                        button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                    });
-                };
-
-                const runFilter = () => {
-                    const keyword = (searchInput?.value || '').trim().toLowerCase();
-                    items.forEach((item) => {
-                        const haystack = String(item.getAttribute('data-search-text') || '').toLowerCase();
-                        item.hidden = keyword !== '' && !haystack.includes(keyword);
-                    });
-                };
-
-                try {
-                    if (window.innerWidth >= 1200 && sessionStorage.getItem(collapseKey) === '1') {
-                        body.classList.add('app-global-cms-collapsed');
-                    }
-                } catch (error) {
-                    // ignore
-                }
-
-                syncToggleState();
-                runFilter();
-
-                const toggleSidebar = () => {
-                    if (window.innerWidth >= 1200) {
-                        body.classList.toggle('app-global-cms-collapsed');
-
-                        try {
-                            sessionStorage.setItem(collapseKey, body.classList.contains('app-global-cms-collapsed') ? '1' : '0');
-                        } catch (error) {
-                            // ignore
-                        }
-                    } else {
-                        body.classList.toggle('app-global-cms-mobile-open');
-                    }
-
-                    syncToggleState();
-                };
-
-                toggleButtons.forEach((button) => {
-                    button.addEventListener('click', toggleSidebar);
-                });
-
-                backdrop?.addEventListener('click', () => {
-                    body.classList.remove('app-global-cms-mobile-open');
-                    syncToggleState();
-                });
-
-                searchInput?.addEventListener('input', runFilter);
-
-                window.addEventListener('resize', () => {
-                    if (window.innerWidth >= 1200) {
-                        body.classList.remove('app-global-cms-mobile-open');
-                    }
-                    syncToggleState();
-                });
-
-                document.addEventListener('keydown', (event) => {
-                    if (event.key === 'Escape') {
-                        body.classList.remove('app-global-cms-mobile-open');
-                        syncToggleState();
-                    }
-                });
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            window.BGApp.syncAllPostForms();
-            window.BGApp.startIdleWatcher();
-            window.BGApp.initGlobalCms();
-
-            const scrollKey = 'bgcalc-scroll:' + window.location.pathname + window.location.search;
-            const savedScroll = window.sessionStorage.getItem(scrollKey);
-            if (savedScroll !== null) {
-                window.requestAnimationFrame(() => {
-                    window.scrollTo({ top: Number(savedScroll) || 0, left: 0, behavior: 'instant' });
-                    window.sessionStorage.removeItem(scrollKey);
-                });
-            }
-        });
-
-        document.addEventListener('submit', (event) => {
-            const form = event.target;
-            if (!(form instanceof HTMLFormElement)) {
-                return;
-            }
-
-            const method = (form.getAttribute('method') || 'get').toLowerCase();
-            if (method === 'post') {
-                window.BGApp.ensureFormCsrf(form);
-            }
-        }, true);
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="<?= base_url('assets/js/app-shell.js?v=' . (@filemtime(FCPATH . 'assets/js/app-shell.js') ?: time())) ?>"></script>
     <script src="<?= base_url('assets/js/score-workspace.js?v=' . (@filemtime(FCPATH . 'assets/js/score-workspace.js') ?: time())) ?>"></script>
 </body>
 </html>

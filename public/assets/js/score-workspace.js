@@ -2,6 +2,7 @@
 // Perubahan: Menambahkan fungsi hideController dan showController, bind event ke js-hide-controller dan js-show-controller.
 (function () {
     const app = window.BGApp || {};
+    let mutationRequestChain = Promise.resolve();
 
     const qs = (selector, scope = document) => scope.querySelector(selector);
     const qsa = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
@@ -30,7 +31,7 @@
         }
     };
 
-    const request = async (url, options = {}) => {
+    const runRequest = async (url, options = {}) => {
         const response = await fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -52,6 +53,23 @@
         }
 
         return payload || { status: 'success', message: 'Berhasil diproses.' };
+    };
+
+    const request = async (url, options = {}) => {
+        const method = String(options.method || 'GET').toUpperCase();
+        if (method === 'GET') {
+            return runRequest(url, options);
+        }
+
+        const execute = async () => runRequest(url, options);
+        const queued = mutationRequestChain.then(execute, execute);
+
+        mutationRequestChain = queued.then(
+            () => undefined,
+            () => undefined,
+        );
+
+        return queued;
     };
 
     const ensureFormDataCsrf = (formData) => {
@@ -273,15 +291,25 @@
 
     const hasTeamRows = (form) => Boolean(qs('tr[data-team-row]', form));
 
+    const getAssociatedField = (form, selector) => {
+        if (!form?.id) {
+            return null;
+        }
+
+        return document.querySelector(`${selector}[form="${form.id}"]`);
+    };
+
     const savePotMeta = async (form) => {
         const url = form.dataset.potUpdateUrl;
         const potId = form.dataset.potId;
         const formData = new FormData();
+        const potNameInput = getAssociatedField(form, 'input[name="pot_name"]');
+        const potOrderInput = getAssociatedField(form, 'input[name="pot_sort_order"]');
 
         ensureFormDataCsrf(formData);
         formData.append('tournament_id', qs('input[name="tournament_id"]', form)?.value || '');
-        formData.append('name', qs('input[name="pot_name"]', form)?.value || '');
-        formData.append('sort_order', qs('input[name="pot_sort_order"]', form)?.value || '');
+        formData.append('name', potNameInput?.value || '');
+        formData.append('sort_order', potOrderInput?.value || '');
         formData.append('redirect_to', qs('input[name="redirect_to"]', form)?.value || window.location.href);
 
         if (!url || !potId) {
@@ -294,6 +322,17 @@
         });
     };
 
+    const syncPotHeadingPreview = (form) => {
+        const titleInput = getAssociatedField(form, 'input[name="pot_name"]');
+        const contextText = qs('.js-pot-context-text', form.closest('.pot-module-card') || document);
+        const tournamentValue = contextText?.dataset.tournamentName || 'Tournament';
+        const nextPotName = (titleInput?.value || '').trim() || 'Pot';
+
+        if (contextText) {
+            contextText.textContent = `${tournamentValue} / ${nextPotName}`;
+        }
+    };
+
     const saveBulk = async (form) => {
         const formData = new FormData(form);
         ensureFormDataCsrf(formData);
@@ -304,15 +343,15 @@
         });
     };
 
-    const scheduleSave = (form, saver) => {
+    const scheduleSave = (form, saver, timerKey = '_saveTimer', queueKey = 'saveQueued') => {
         if (form.dataset.canManage !== '1') {
             return;
         }
 
-        clearTimeout(form._saveTimer);
-        form.dataset.saveQueued = '1';
+        clearTimeout(form[timerKey]);
+        form.dataset[queueKey] = '1';
         setStatus(form, 'dirty', '');
-        form._saveTimer = window.setTimeout(saver, 450);
+        form[timerKey] = window.setTimeout(saver, 450);
     };
 
     const createHeadCell = (gameNo) => {
@@ -645,6 +684,7 @@
             const managerContext = workspace.dataset.context || 'import';
             const currentTournamentId = Number.parseInt(workspace.dataset.currentTournamentId || '0', 10);
             const currentPotId = Number.parseInt(workspace.dataset.currentPotId || '0', 10);
+            const fixedTournamentId = Number.parseInt(workspace.dataset.fixedTournamentId || workspace.dataset.selectedTournamentId || '0', 10);
 
             const tournamentSelect = qs('.js-manager-tournament', workspace);
             const potSelect = qs('.js-manager-pot', workspace);
@@ -668,6 +708,12 @@
                 lookupTeams: [],
                 activeTeamId: 0,
                 query: '',
+            };
+
+            const getSelectedTournamentId = () => {
+                const selectedValue = tournamentSelect?.value || '';
+                const parsed = Number.parseInt(selectedValue || String(fixedTournamentId || 0), 10);
+                return Number.isNaN(parsed) ? 0 : parsed;
             };
 
             const setStatus = (message, status = 'idle') => {
@@ -884,7 +930,7 @@
                     if (allowUnassigned && potValue === '') {
                         currentScopeEl.textContent = 'Semua team tournament / database only';
                     } else {
-                        const isCurrentScope = Number.parseInt(tournamentSelect?.value || '0', 10) === currentTournamentId && Number.parseInt(potValue || '0', 10) === currentPotId;
+                        const isCurrentScope = getSelectedTournamentId() === currentTournamentId && Number.parseInt(potValue || '0', 10) === currentPotId;
                         currentScopeEl.textContent = isCurrentScope ? 'Pot yang sedang ditampilkan' : 'Pot lain / mode global';
                     }
                 }
@@ -942,6 +988,7 @@
                 const formData = new FormData();
                 ensureFormDataCsrf(formData);
                 formData.append('pot_id', String(potId));
+                formData.append('tournament_id', String(getSelectedTournamentId()));
                 formData.append('name', team.name || '');
                 formData.append('member_text', team.member_text || '');
                 formData.append('redirect_to', window.location.href);
@@ -994,7 +1041,7 @@
 
                 const rawPotValue = (potSelect?.value || '').trim();
                 const currentSelectedPotId = Number.parseInt(rawPotValue || '0', 10);
-                const currentTournamentValue = Number.parseInt(tournamentSelect?.value || '0', 10);
+                const currentTournamentValue = getSelectedTournamentId();
                 const teamPotId = team.pot_id === null ? null : Number(team.pot_id);
                 const teamTournamentId = team.tournament_id === null ? null : Number(team.tournament_id);
                 const isUnassignedTeam = teamPotId === null;
@@ -1047,7 +1094,8 @@
                 const previousTeamId = preferredTeamId || (keepSelection ? state.activeTeamId : 0);
                 const params = new URLSearchParams();
 
-                if (tournamentSelect?.value) params.set('tournament_id', tournamentSelect.value);
+                const selectedTournamentId = getSelectedTournamentId();
+                if (selectedTournamentId > 0) params.set('tournament_id', String(selectedTournamentId));
                 if (potSelect) params.set('pot_id', potSelect.value || '');
                 if (allowUnassigned && (potSelect?.value || '') === '') params.set('pot_scope', 'unassigned');
 
@@ -1108,7 +1156,7 @@
             };
 
             const submitManagerAction = async (action) => {
-                const selectedTournamentId = Number.parseInt(tournamentSelect?.value || '0', 10);
+                const selectedTournamentId = getSelectedTournamentId();
                 const rawPotValue = (potSelect?.value || '').trim();
                 const potId = Number.parseInt(rawPotValue || '0', 10);
                 const teamId = Number.parseInt(teamIdInput?.value || '0', 10);
@@ -1137,6 +1185,7 @@
 
                 const formData = new FormData();
                 ensureFormDataCsrf(formData);
+                formData.append('tournament_id', String(selectedTournamentId > 0 ? selectedTournamentId : ''));
                 formData.append('pot_id', hasPot ? String(potId) : '');
                 formData.append('name', teamName);
                 formData.append('member_text', memberText);
@@ -1798,6 +1847,57 @@
         });
     };
 
+    const bindPotMetaForms = () => {
+        qsa('.js-pot-meta-form').forEach((form) => {
+            const managedInputs = qsa(`.js-pot-input[form="${form.id}"]`);
+            if (!managedInputs.length) {
+                return;
+            }
+
+            managedInputs.forEach((input) => {
+                if (input.dataset.potMetaBound === '1') {
+                    return;
+                }
+
+                input.dataset.potMetaBound = '1';
+
+                const queueSave = () => {
+                    syncPotHeadingPreview(form);
+                    scheduleSave(form, async () => {
+                        if (form.dataset.canManage !== '1' || form.dataset.metaSaving === '1') {
+                            return;
+                        }
+
+                        form.dataset.metaSaving = '1';
+                        form.dataset.metaSaveQueued = '0';
+                        setStatus(form, 'saving', '');
+
+                        try {
+                            const payload = await savePotMeta(form);
+                            syncPotHeadingPreview(form);
+                            setStatus(form, 'saved', payload.message || '');
+                        } catch (error) {
+                            setStatus(form, 'error', error.message || 'Gagal menyimpan perubahan pot.');
+                        } finally {
+                            form.dataset.metaSaving = '0';
+
+                            if (form.dataset.metaSaveQueued === '1') {
+                                clearTimeout(form._metaSaveTimer);
+                                form._metaSaveTimer = window.setTimeout(() => {
+                                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                                }, 120);
+                            }
+                        }
+                    }, '_metaSaveTimer', 'metaSaveQueued');
+                };
+
+                input.addEventListener('input', queueSave);
+                input.addEventListener('change', queueSave);
+                input.addEventListener('blur', queueSave);
+            });
+        });
+    };
+
     const bindFormInputs = (form) => {
         const table = qs('.score-table', form);
         const placementMap = JSON.parse(form.dataset.placementMap || '{}');
@@ -1914,7 +2014,11 @@
             });
         };
 
-        qsa('.js-score-input, .js-team-input, .js-member-input, .js-pot-input', form).forEach((input) => {
+        const managedInputs = [
+            ...qsa('.js-score-input, .js-team-input, .js-member-input', form),
+        ];
+
+        managedInputs.forEach((input) => {
             if (input.dataset.inputBound === '1') {
                 return;
             }
@@ -2025,6 +2129,7 @@
     };
 
     const initScoreWorkspace = () => {
+        bindPotMetaForms();
         qsa('.js-score-bulk-form').forEach((form) => bindFormInputs(form));
         bindQuickAddTeamForms();
         bindLocalAddTeamButtons();

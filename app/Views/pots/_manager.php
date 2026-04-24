@@ -14,7 +14,7 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
         <div class="d-flex flex-wrap gap-2">
             <span class="small text-muted align-self-center"><?= esc((string) count($teams)) ?> team</span>
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editPotModal<?= $pot['id'] ?>">Edit Pot</button>
-            <form action="<?= site_url('pots/delete/' . $pot['id']) ?>" method="post" onsubmit="return confirm('Hapus pot ini beserta seluruh team dan score?');">
+            <form action="<?= site_url('pots/delete/' . $pot['id']) ?>" method="post" data-confirm="Hapus pot ini beserta seluruh team dan score?">
                 <?= csrf_field() ?>
                 <button type="submit" class="btn btn-outline-danger btn-sm">Hapus Pot</button>
             </form>
@@ -80,7 +80,7 @@ $gameNos = $pot['management']['gameNos'] ?? [1];
                                         <td class="text-end">
                                             <div class="d-inline-flex flex-wrap gap-2 justify-content-end">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editTeamModal<?= $team['id'] ?>">Edit</button>
-                                                <form action="<?= site_url('teams/delete/' . $team['id']) ?>" method="post" onsubmit="return confirm('Hapus team ini?');">
+                                                <form action="<?= site_url('teams/delete/' . $team['id']) ?>" method="post" data-confirm="Hapus team ini?">
                                                     <?= csrf_field() ?>
                                                     <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
                                                 </form>

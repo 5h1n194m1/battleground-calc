@@ -3,6 +3,7 @@ $showCardWrapper  = $showCardWrapper ?? true;
 $cardBodyClass    = $cardBodyClass ?? 'card-body';
 $tableId          = 'scoreCalculatorTable-' . (int) $pot['id'];
 $formId           = 'scoreCalculatorForm-' . (int) $pot['id'];
+$metaFormId       = 'potMetaForm-' . (int) $pot['id'];
 $gameCountId      = 'gameCountInput-' . (int) $pot['id'];
 $subHeaderId      = 'gameCountHeaderRow-' . (int) $pot['id'];
 $addButtonId      = 'addGameBtn-' . (int) $pot['id'];
@@ -29,6 +30,20 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
 <?php endif; ?>
 
 <div class="pot-module-shell">
+    <form
+        action="<?= site_url('pots/update/' . $pot['id']) ?>"
+        method="post"
+        id="<?= esc($metaFormId) ?>"
+        class="js-pot-meta-form"
+        data-can-manage="<?= $canManage ? '1' : '0' ?>"
+        data-pot-id="<?= esc((string) $pot['id']) ?>"
+        data-pot-update-url="<?= site_url('pots/update/' . $pot['id']) ?>"
+    >
+        <?= csrf_field() ?>
+        <input type="hidden" name="tournament_id" value="<?= esc((string) $tournamentId) ?>">
+        <input type="hidden" name="redirect_to" value="<?= current_url() ?>">
+    </form>
+
     <div class="pot-module-header">
         <div class="pot-module-title-row">
             <div class="pot-order-stack">
@@ -37,7 +52,7 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
                     type="number"
                     min="1"
                     name="pot_sort_order"
-                    form="<?= esc($formId) ?>"
+                    form="<?= esc($metaFormId) ?>"
                     class="form-control form-control-sm pot-order-inline js-pot-input"
                     value="<?= esc((string) ($pot['sort_order'] ?? 1)) ?>"
                     <?= $disabledAttr ?>
@@ -47,14 +62,14 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
             <input
                 type="text"
                 name="pot_name"
-                form="<?= esc($formId) ?>"
+                form="<?= esc($metaFormId) ?>"
                 class="form-control pot-module-title-input js-pot-input"
                 value="<?= esc($pot['name']) ?>"
                 <?= $readonlyAttr ?>
             >
         </div>
         <div class="pot-module-context-line">
-            <span class="pot-module-context-text">
+            <span class="pot-module-context-text js-pot-context-text" data-tournament-name="<?= esc(($tournamentName ?? '') !== '' ? (string) $tournamentName : 'Tournament') ?>">
                 <?= esc(($tournamentName ?? '') !== '' ? (string) $tournamentName : 'Tournament') ?> / <?= esc($pot['name'] ?? 'Pot') ?>
             </span>
         </div>

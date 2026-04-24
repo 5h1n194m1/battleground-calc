@@ -209,9 +209,7 @@ class PotController extends BaseController
         }
 
         $uploadPath = FCPATH . 'uploads/pot-references';
-        if (! is_dir($uploadPath)) {
-            mkdir($uploadPath, 0777, true);
-        }
+        $this->ensureUploadDirectory($uploadPath);
 
         $payload = [];
 
@@ -346,6 +344,7 @@ class PotController extends BaseController
 
             foreach ($selectedTeamIds as $index => $teamId) {
                 $this->teamModel->update($teamId, [
+                    'tournament_id' => (int) ($pot['tournament_id'] ?? 0),
                     'pot_id'     => $targetPotId,
                     'sort_order' => $index + 1,
                 ]);
@@ -434,5 +433,24 @@ class PotController extends BaseController
         $redirect = redirect()->back()->with('error', $message);
 
         return $validation === [] ? $redirect : $redirect->with('validation', $validation);
+    }
+
+    private function ensureUploadDirectory(string $uploadPath): void
+    {
+        if (! is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        $parent = dirname($uploadPath);
+        $htaccessPath = rtrim($parent, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.htaccess';
+        $indexPath = rtrim($parent, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index.html';
+
+        if (! is_file($htaccessPath)) {
+            file_put_contents($htaccessPath, "Options -Indexes\n<FilesMatch \"\\.(php|phar|phtml|pl|py|jsp|asp|sh|cgi)\\$\">\n    Require all denied\n</FilesMatch>\nRemoveHandler .php .phtml .phar .pl .py .jsp .asp .sh .cgi\n<IfModule mod_php.c>\n    php_flag engine off\n</IfModule>\n");
+        }
+
+        if (! is_file($indexPath)) {
+            file_put_contents($indexPath, '<!doctype html><title>403</title>');
+        }
     }
 }

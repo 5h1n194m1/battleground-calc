@@ -361,6 +361,7 @@ class ScoreController extends BaseController
                             $resolvedTeamIds[$teamKey] = $conflictTeamId;
                             $resolvedTempTeamKeys[] = $teamKey;
                             $teamUpdateOps[$conflictTeamId] = array_merge($teamUpdateOps[$conflictTeamId] ?? [], [
+                                'tournament_id' => $pot['tournament_id'],
                                 'pot_id'     => $potId,
                                 'sort_order' => $nextSortOrder,
                             ]);
@@ -410,6 +411,7 @@ class ScoreController extends BaseController
 
         foreach ($teamCreateOps as $teamKey => $teamCreate) {
             $createdTeamId = (int) $this->teamModel->insert([
+                'tournament_id' => (int) ($pot['tournament_id'] ?? 0),
                 'pot_id'     => $potId,
                 'name'       => (string) $teamCreate['name'],
                 'sort_order' => (int) $teamCreate['sort_order'],

@@ -35,19 +35,56 @@ class TeamController extends BaseController
 
     public function rosterIndex()
     {
-        $teams = $this->teamModel
-            ->select('teams.id, teams.name, teams.sort_order, teams.pot_id, pots.name AS pot_name, tournaments.name AS tournament_name, tournaments.status AS tournament_status')
+        $tournaments = $this->tournamentModel->orderBy('created_at', 'DESC')->findAll();
+        $selectedTournamentKey = trim((string) ($this->request->getGet('tournament_id') ?? 'all'));
+        if ($selectedTournamentKey === '') {
+            $selectedTournamentKey = 'all';
+        }
+
+        $selectedTournamentId = ctype_digit($selectedTournamentKey) ? (int) $selectedTournamentKey : 0;
+        $showOnlyWithoutTournament = $selectedTournamentKey === 'none';
+        $showOnlyWithoutPot = $selectedTournamentKey === 'unassigned';
+
+        $teamsBuilder = $this->teamModel
+            ->select('teams.id, teams.tournament_id, teams.name, teams.sort_order, teams.pot_id, pots.name AS pot_name, COALESCE(pot_tournaments.name, team_tournaments.name) AS tournament_name, COALESCE(pot_tournaments.status, team_tournaments.status) AS tournament_status')
             ->join('pots', 'pots.id = teams.pot_id', 'left')
-            ->join('tournaments', 'tournaments.id = pots.tournament_id', 'left')
-            ->orderBy('tournaments.name', 'ASC')
+            ->join('tournaments AS pot_tournaments', 'pot_tournaments.id = pots.tournament_id', 'left')
+            ->join('tournaments AS team_tournaments', 'team_tournaments.id = teams.tournament_id', 'left');
+
+        if ($selectedTournamentId > 0) {
+            $teamsBuilder->groupStart()
+                ->where('pots.tournament_id', $selectedTournamentId)
+                ->orGroupStart()
+                    ->where('teams.pot_id IS NULL', null, false)
+                    ->where('teams.tournament_id', $selectedTournamentId)
+                ->groupEnd()
+                ->groupEnd();
+        } elseif ($showOnlyWithoutPot) {
+            $teamsBuilder->where('teams.pot_id IS NULL', null, false);
+        } elseif ($showOnlyWithoutTournament) {
+            $teamsBuilder->where('teams.pot_id IS NULL', null, false)
+                ->groupStart()
+                    ->where('teams.tournament_id IS NULL', null, false)
+                    ->orWhere('teams.tournament_id', 0)
+                ->groupEnd();
+        }
+
+        $teams = $teamsBuilder
+            ->orderBy('COALESCE(pot_tournaments.name, team_tournaments.name)', 'ASC', false)
             ->orderBy('pots.sort_order', 'ASC')
             ->orderBy('teams.sort_order', 'ASC')
             ->orderBy('teams.name', 'ASC')
             ->findAll();
 
-        $potOptions = $this->potModel
-            ->select('pots.id, pots.name, pots.sort_order, tournaments.name AS tournament_name, tournaments.status AS tournament_status')
-            ->join('tournaments', 'tournaments.id = pots.tournament_id')
+        $potOptionsBuilder = $this->potModel
+            ->select('pots.id, pots.name, pots.sort_order, tournaments.id AS tournament_id, tournaments.name AS tournament_name, tournaments.status AS tournament_status')
+            ->join('tournaments', 'tournaments.id = pots.tournament_id');
+
+        if ($selectedTournamentId > 0) {
+            $potOptionsBuilder->where('pots.tournament_id', $selectedTournamentId);
+        }
+
+        $potOptions = $potOptionsBuilder
             ->orderBy('tournaments.name', 'ASC')
             ->orderBy('pots.sort_order', 'ASC')
             ->orderBy('pots.name', 'ASC')
@@ -63,6 +100,7 @@ class TeamController extends BaseController
             return [
                 'id'              => $teamId,
                 'pot_id'          => $team['pot_id'] !== null ? (int) $team['pot_id'] : null,
+                'tournament_id'   => $team['tournament_id'] !== null ? (int) $team['tournament_id'] : null,
                 'name'            => (string) ($team['name'] ?? '-'),
                 'members'         => $members,
                 'member_text'     => $members !== [] ? implode(', ', $members) : '-',
@@ -76,17 +114,60 @@ class TeamController extends BaseController
         }, $teams);
 
         return view('teams/roster_index', [
-            'pageTitle' => 'Daftar Team',
-            'rows'      => $rows,
-            'potOptions'=> array_map(static fn (array $pot): array => [
+            'pageTitle'            => 'Daftar Team',
+            'rows'                 => $rows,
+            'tournaments'          => $tournaments,
+            'selectedTournamentKey'=> $selectedTournamentKey,
+            'selectedTournamentId' => $selectedTournamentId,
+            'potOptions'           => array_map(static fn (array $pot): array => [
                 'id'              => (int) $pot['id'],
+                'tournament_id'   => (int) ($pot['tournament_id'] ?? 0),
                 'name'            => (string) ($pot['name'] ?? 'Pot'),
                 'sort_order'      => (int) ($pot['sort_order'] ?? 0),
                 'tournament_name' => (string) ($pot['tournament_name'] ?? 'Tournament'),
                 'status'          => (string) ($pot['tournament_status'] ?? TournamentModel::STATUS_BELUM_MULAI),
-                'label'           => trim((string) ($pot['tournament_name'] ?? 'Tournament') . ' / ' . (string) ($pot['name'] ?? 'Pot')),
+                'label'           => (string) ($pot['name'] ?? 'Pot'),
             ], $potOptions),
         ]);
+    }
+
+    public function exportTemplate()
+    {
+        $tournamentId = (int) ($this->request->getGet('tournament_id') ?? 0);
+        if ($tournamentId <= 0) {
+            return redirect()->to(site_url('teams/roster'))->with('error', 'Pilih tournament terlebih dahulu sebelum export.');
+        }
+
+        $tournament = $this->tournamentModel->find($tournamentId);
+        if ($tournament === null) {
+            return redirect()->to(site_url('teams/roster'))->with('error', 'Tournament tidak ditemukan.');
+        }
+
+        $payload = $this->buildTournamentTemplateExport($tournamentId);
+
+        return view('teams/export_template', [
+            'pageTitle'       => 'Export Template CSV',
+            'tournament'      => $tournament,
+            'exports'         => $payload['exports'],
+            'unassignedTeams' => $payload['unassignedTeams'],
+        ]);
+    }
+
+    public function downloadTemplateCsv(int $potId)
+    {
+        $pot = $this->potWithTournament($potId);
+        if ($pot === null) {
+            throw PageNotFoundException::forPageNotFound('Pot tidak ditemukan.');
+        }
+
+        $payload = $this->buildPotTemplateExport($potId);
+        $filename = url_title((string) ($pot['tournament_name'] ?? 'tournament'), '-', true)
+            . '-' . url_title((string) ($pot['name'] ?? 'pot'), '-', true) . '.csv';
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setBody("\xEF\xBB\xBF" . $payload['csvText']);
     }
 
 
@@ -240,9 +321,10 @@ public function managerData()
     public function store()
     {
         $isAjax = $this->request->isAJAX();
-        $data = $this->request->getPost(['pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']);
+        $data = $this->request->getPost(['tournament_id', 'pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']);
         $allowsUnassigned = $this->allowsUnassignedTeams();
         $potId = $this->normalizePotId($data['pot_id'] ?? null);
+        $requestedTournamentId = $this->normalizeTournamentId($data['tournament_id'] ?? null);
 
         if (! $this->validateData($data, $this->rules())) {
             return $this->teamErrorResponse('Data team belum valid.', $isAjax, $this->validator->getErrors());
@@ -254,8 +336,16 @@ public function managerData()
             return $this->teamErrorResponse('Pot tujuan tidak ditemukan.', $isAjax);
         }
 
+        $targetTournamentId = $pot !== null
+            ? (int) ($pot['tournament_id'] ?? 0)
+            : $requestedTournamentId;
+
         if (! $allowsUnassigned && $potId === null) {
             return $this->teamErrorResponse('Pot tujuan wajib dipilih.', $isAjax);
+        }
+
+        if ($allowsUnassigned && $targetTournamentId <= 0) {
+            return $this->teamErrorResponse('Tournament wajib dipilih terlebih dahulu.', $isAjax);
         }
 
         if ($pot !== null && ! $this->isPotEditable($pot)) {
@@ -271,11 +361,12 @@ public function managerData()
 
         if ($name === '') {
             $name = $this->nextAvailableTeamName($potId, $existingCount + 1);
-        } elseif (($duplicate = $this->findDuplicateTeamInScope($name, $potId)) !== null) {
+        } elseif (($duplicate = $this->findDuplicateTeamInScope($name, $potId, null, $targetTournamentId)) !== null) {
             return $this->teamErrorResponse($this->duplicateTeamMessage($name, $duplicate, $potId), $isAjax);
         }
 
         $teamId = (int) $this->teamModel->insert([
+            'tournament_id' => $targetTournamentId > 0 ? $targetTournamentId : null,
             'pot_id'     => $potId,
             'name'       => $name,
             'sort_order' => $sortOrder === '' ? ($existingCount + 1) : (int) $sortOrder,
@@ -307,79 +398,22 @@ public function managerData()
 
     public function update(int $id)
     {
-        $team = $this->teamModel->find($id);
         $isAjax = $this->request->isAJAX();
-        $allowsUnassigned = $this->allowsUnassignedTeams();
-
-        if ($team === null) {
-            if ($isAjax) {
-                return $this->response->setStatusCode(404)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Team tidak ditemukan.',
-                    'csrfTokenName' => csrf_token(),
-                    'csrfHash' => csrf_hash(),
-                ]);
-            }
-
-            throw PageNotFoundException::forPageNotFound('Team tidak ditemukan.');
-        }
-
-        $pot = isset($team['pot_id']) && $team['pot_id'] !== null ? $this->potWithTournament((int) $team['pot_id']) : null;
-        if ($team['pot_id'] !== null && $pot === null) {
-            return $this->teamErrorResponse('Pot team tidak ditemukan.', $isAjax);
-        }
-
-        if ($pot !== null && ! $this->isPotEditable($pot)) {
-            return $this->teamErrorResponse('Tournament sudah finished. Team tidak bisa diubah.', $isAjax);
-        }
-
-        $data = $this->request->getPost(['pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']);
-
-        if (! $this->validateData($data, $this->rules())) {
-            return $this->teamErrorResponse('Perubahan team belum valid.', $isAjax, $this->validator->getErrors());
-        }
-
-        $targetPotId = $this->normalizePotId($data['pot_id'] ?? $team['pot_id']);
-        $targetPot = $targetPotId !== null ? $this->potWithTournament($targetPotId) : null;
-
-        if (! $allowsUnassigned && $targetPotId === null) {
-            return $this->teamErrorResponse('Pot tujuan wajib dipilih.', $isAjax);
-        }
-
-        if ($targetPotId !== null && $targetPot === null) {
-            return $this->teamErrorResponse('Pot tujuan tidak ditemukan.', $isAjax);
-        }
-
-        if ($targetPot !== null && ! $this->isPotEditable($targetPot)) {
-            return $this->teamErrorResponse('Tournament sudah finished. Team tidak bisa dipindah.', $isAjax);
-        }
-
-        $name = trim((string) ($data['name'] ?? ''));
-        $sortOrder = trim((string) ($data['sort_order'] ?? ''));
-        $finalName = $name === '' ? (string) $team['name'] : $name;
-
-        if (($duplicate = $this->findDuplicateTeamInScope($finalName, $targetPotId, $id)) !== null) {
-            return $this->teamErrorResponse($this->duplicateTeamMessage($finalName, $duplicate, $targetPotId), $isAjax);
-        }
-
-        $this->teamModel->update($id, [
-            'pot_id'     => $targetPotId,
-            'name'       => $finalName,
-            'sort_order' => $sortOrder === '' ? (int) $team['sort_order'] : (int) $sortOrder,
-        ]);
-
-        if ($this->request->getPost('member_text') !== null) {
-            $this->syncMembersFromText($id, (string) ($data['member_text'] ?? ''));
-        }
-
+        $data = $this->request->getPost(['tournament_id', 'pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']);
         $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
+        $result = $this->applyTeamUpdate($id, $data, $this->allowsUnassignedTeams());
+
+        if (! $result['ok']) {
+            return $this->teamErrorResponse($result['message'], $isAjax, $result['validation']);
+        }
+
         if ($isAjax) {
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Team berhasil diperbarui.',
                 'teamId' => $id,
-                'potId' => $targetPotId ?? 0,
-                'previousPotId' => (int) ($team['pot_id'] ?? 0),
+                'potId' => $result['potId'] ?? 0,
+                'previousPotId' => $result['previousPotId'] ?? 0,
                 'csrfTokenName' => csrf_token(),
                 'csrfHash' => csrf_hash(),
             ]);
@@ -389,7 +423,68 @@ public function managerData()
             return redirect()->to($redirectTo)->with('success', 'Team berhasil diperbarui.');
         }
 
-        return redirect()->to($targetPotId !== null ? site_url('pots/' . $targetPotId . '/scores') : site_url('imports/teams'))->with('success', 'Team berhasil diperbarui.');
+        return redirect()->to($redirectTo !== '' ? $redirectTo : site_url('teams/roster'))->with('success', 'Team berhasil diperbarui.');
+    }
+
+    public function bulkUpdate()
+    {
+        $redirectTo = trim((string) ($this->request->getPost('redirect_to') ?? current_url()));
+        $allowsUnassigned = true;
+        $teamsPayload = $this->request->getPost('teams');
+
+        if (! is_array($teamsPayload) || $teamsPayload === []) {
+            return redirect()->to($redirectTo)->with('error', 'Belum ada perubahan team yang bisa disimpan.');
+        }
+
+        $singleTeamId = $this->normalizeBulkTeamId($this->request->getPost('save_single_team_id'));
+        if ($singleTeamId === null) {
+            $teamsPayload = $this->filterChangedBulkPayload($teamsPayload);
+            if ($teamsPayload === []) {
+                return redirect()->to($redirectTo)->with('info', 'Tidak ada perubahan baru untuk disimpan.');
+            }
+        }
+
+        $targetTeamIds = $singleTeamId !== null ? [$singleTeamId] : array_map('intval', array_keys($teamsPayload));
+        $updatedCount = 0;
+        $db = db_connect();
+
+        try {
+            $db->transException(true)->transStart();
+
+            foreach ($targetTeamIds as $teamId) {
+                if (! isset($teamsPayload[$teamId]) || ! is_array($teamsPayload[$teamId])) {
+                    continue;
+                }
+
+                $rowData = $teamsPayload[$teamId];
+                $rowData['redirect_to'] = $redirectTo;
+                $result = $this->applyTeamUpdate((int) $teamId, $rowData, $allowsUnassigned);
+
+                if (! $result['ok']) {
+                    throw new \RuntimeException($result['message']);
+                }
+
+                $updatedCount++;
+            }
+
+            $db->transComplete();
+        } catch (\Throwable $e) {
+            if ($db->transStatus() !== false) {
+                $db->transRollback();
+            }
+
+            return redirect()->to($redirectTo)->withInput()->with('error', $e->getMessage());
+        }
+
+        if ($updatedCount <= 0) {
+            return redirect()->to($redirectTo)->with('error', 'Tidak ada team yang diperbarui.');
+        }
+
+        $successMessage = $singleTeamId !== null
+            ? 'Team berhasil diperbarui.'
+            : $updatedCount . ' team berhasil diperbarui.';
+
+        return redirect()->to($redirectTo)->with('success', $successMessage);
     }
 
 
@@ -463,6 +558,7 @@ private function destroyTeam(int $id, string $mode)
 
             $nextSortOrder = $this->teamModel->where('pot_id IS NULL', null, false)->countAllResults() + 1;
             $this->teamModel->update($id, [
+                'tournament_id' => $pot !== null ? (int) ($pot['tournament_id'] ?? 0) : null,
                 'pot_id' => null,
                 'sort_order' => $nextSortOrder,
             ]);
@@ -520,6 +616,10 @@ private function destroyTeam(int $id, string $mode)
                 'label' => 'Pot',
                 'rules' => 'permit_empty|is_natural',
             ],
+            'tournament_id' => [
+                'label' => 'Tournament',
+                'rules' => 'permit_empty|is_natural',
+            ],
             'name' => [
                 'label' => 'Nama team',
                 'rules' => 'permit_empty|max_length[150]',
@@ -531,11 +631,193 @@ private function destroyTeam(int $id, string $mode)
         ];
     }
 
+    private function buildTournamentTemplateExport(int $tournamentId): array
+    {
+        $pots = $this->potModel
+            ->where('tournament_id', $tournamentId)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $exports = [];
+        foreach ($pots as $pot) {
+            $exports[] = $this->buildPotTemplateExport((int) $pot['id']);
+        }
+
+        $unassignedTeams = $this->teamModel
+            ->where('tournament_id', $tournamentId)
+            ->where('pot_id IS NULL', null, false)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        return [
+            'exports' => $exports,
+            'unassignedTeams' => $unassignedTeams,
+        ];
+    }
+
+    private function buildPotTemplateExport(int $potId): array
+    {
+        $pot = $this->potWithTournament($potId);
+        if ($pot === null) {
+            throw PageNotFoundException::forPageNotFound('Pot tidak ditemukan.');
+        }
+
+        $teams = $this->teamModel
+            ->where('pot_id', $potId)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $teamIds = array_map(static fn (array $team): int => (int) $team['id'], $teams);
+        $scores = $teamIds === []
+            ? []
+            : $this->scoreModel
+                ->where('pot_id', $potId)
+                ->whereIn('team_id', $teamIds)
+                ->orderBy('game_no', 'ASC')
+                ->findAll();
+
+        $scoresByTeam = [];
+        $gameCount = 2;
+        foreach ($scores as $score) {
+            $teamId = (int) $score['team_id'];
+            $gameNo = (int) $score['game_no'];
+            $scoresByTeam[$teamId][$gameNo] = $score;
+            $gameCount = max($gameCount, $gameNo);
+        }
+
+        $gameCount = max(2, $gameCount);
+        $matrix = $this->buildTemplateMatrix($teams, $scoresByTeam, $gameCount, (string) ($pot['name'] ?? 'POT'));
+
+        return [
+            'pot' => $pot,
+            'teams' => $teams,
+            'gameCount' => $gameCount,
+            'matrix' => $matrix,
+            'csvText' => $this->matrixToCsv($matrix),
+            'clipboardText' => $this->matrixToTsv($matrix),
+        ];
+    }
+
+    private function buildTemplateMatrix(array $teams, array $scoresByTeam, int $gameCount, string $potName): array
+    {
+        $headerRow1 = ['No', 'Nama Tim', '', ''];
+        $headerRow2 = ['', '', '', ''];
+        $headerRow3 = ['', '', '', ''];
+
+        for ($gameNo = 1; $gameNo <= $gameCount; $gameNo++) {
+            $headerRow1 = array_merge($headerRow1, [$gameNo === 1 ? strtoupper($potName) : '', '', '']);
+            $headerRow2 = array_merge($headerRow2, ['GAME ' . $gameNo, '', '']);
+            $headerRow3 = array_merge($headerRow3, ['Rank', 'P.Rank', 'P.Kill']);
+        }
+
+        $headerRow1[] = 'Total Point';
+        $headerRow2[] = '';
+        $headerRow3[] = '';
+
+        $rows = [$headerRow1, $headerRow2, $headerRow3];
+
+        foreach ($teams as $index => $team) {
+            $excelRow = $index + 4;
+            $row = [
+                $index + 1,
+                (string) ($team['name'] ?? ''),
+                '',
+                '',
+            ];
+
+            $totalRefs = [];
+            for ($gameNo = 1; $gameNo <= $gameCount; $gameNo++) {
+                $rankColumn = $this->excelColumnName(5 + (($gameNo - 1) * 3));
+                $placementColumn = $this->excelColumnName(6 + (($gameNo - 1) * 3));
+                $killColumn = $this->excelColumnName(7 + (($gameNo - 1) * 3));
+                $rankValue = $scoresByTeam[(int) $team['id']][$gameNo]['rank_no'] ?? '';
+                $killValue = $scoresByTeam[(int) $team['id']][$gameNo]['kill_point'] ?? '';
+
+                $row[] = $rankValue !== '' ? (int) $rankValue : '';
+                $row[] = '=IF(' . $rankColumn . $excelRow . '="","",IFERROR(IFS(VALUE(' . $rankColumn . $excelRow . ')=0,0,VALUE(' . $rankColumn . $excelRow . ')=1,12,VALUE(' . $rankColumn . $excelRow . ')=2,9,VALUE(' . $rankColumn . $excelRow . ')=3,8,VALUE(' . $rankColumn . $excelRow . ')=4,7,VALUE(' . $rankColumn . $excelRow . ')=5,6,VALUE(' . $rankColumn . $excelRow . ')=6,5,VALUE(' . $rankColumn . $excelRow . ')=7,4,VALUE(' . $rankColumn . $excelRow . ')=8,3,VALUE(' . $rankColumn . $excelRow . ')=9,2,VALUE(' . $rankColumn . $excelRow . ')=10,1,VALUE(' . $rankColumn . $excelRow . ')>=11,0),0))';
+                $row[] = $killValue !== '' ? (int) $killValue : '';
+
+                $totalRefs[] = $placementColumn . $excelRow;
+                $totalRefs[] = $killColumn . $excelRow;
+            }
+
+            $row[] = '=IF(B' . $excelRow . '="","",SUM(' . implode(',', $totalRefs) . '))';
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    private function matrixToCsv(array $matrix): string
+    {
+        $lines = array_map(function (array $row): string {
+            $escaped = array_map(function ($value): string {
+                $string = str_replace(["\r", "\n"], ' ', (string) ($value ?? ''));
+                $string = str_replace('"', '""', $string);
+
+                return '"' . $string . '"';
+            }, $row);
+
+            return implode(',', $escaped);
+        }, $matrix);
+
+        return implode("\r\n", $lines) . "\r\n";
+    }
+
+    private function matrixToTsv(array $matrix): string
+    {
+        $lines = array_map(static function (array $row): string {
+            $escaped = array_map(static function ($value): string {
+                return str_replace(["\t", "\r", "\n"], [' ', ' ', ' '], (string) ($value ?? ''));
+            }, $row);
+
+            return implode("\t", $escaped);
+        }, $matrix);
+
+        return implode("\r\n", $lines) . "\r\n";
+    }
+
+    private function excelColumnName(int $columnNumber): string
+    {
+        $name = '';
+        $index = $columnNumber;
+
+        while ($index > 0) {
+            $index--;
+            $name = chr(65 + ($index % 26)) . $name;
+            $index = intdiv($index, 26);
+        }
+
+        return $name;
+    }
+
     private function syncMembersFromText(int $teamId, string $memberText): void
     {
-        $normalizedMemberText = str_replace([';', "
+        $members = $this->memberListFromText($memberText);
+
+        $this->teamMemberModel->where('team_id', $teamId)->delete();
+        foreach ($members as $memberName) {
+            $this->teamMemberModel->insert([
+                'team_id'     => $teamId,
+                'player_name' => $memberName,
+                'player_role' => null,
+            ]);
+        }
+    }
+
+    private function normalizeMemberText(string $memberText): string
+    {
+        return implode(', ', $this->memberListFromText($memberText));
+    }
+
+    private function memberListFromText(string $memberText): array
+    {
+        $normalizedMemberText = str_replace([";", "
 ", "
-"], [',', "
+"], [",", "
 ", "
 "], $memberText);
         $chunks = preg_split('/
@@ -547,19 +829,11 @@ private function destroyTeam(int $id, string $mode)
             if ($name === '') {
                 continue;
             }
-            $members[] = $name;
+
+            $members[] = preg_replace('/\s+/', ' ', $name) ?? $name;
         }
 
-        $members = array_slice(array_values(array_unique($members)), 0, self::MAX_MEMBERS);
-
-        $this->teamMemberModel->where('team_id', $teamId)->delete();
-        foreach ($members as $memberName) {
-            $this->teamMemberModel->insert([
-                'team_id'     => $teamId,
-                'player_name' => $memberName,
-                'player_role' => null,
-            ]);
-        }
+        return array_slice(array_values(array_unique($members)), 0, self::MAX_MEMBERS);
     }
 
     private function normalizeName(string $value): string
@@ -610,14 +884,18 @@ private function destroyTeam(int $id, string $mode)
     private function lookupTeamsForManager(int $selectedTournamentId): array
     {
         $builder = $this->teamModel
-            ->select('teams.id, teams.pot_id, teams.name, teams.sort_order, pots.name AS pot_name, pots.tournament_id AS tournament_id, tournaments.name AS tournament_name')
+            ->select('teams.id, teams.tournament_id, teams.pot_id, teams.name, teams.sort_order, pots.name AS pot_name, COALESCE(pots.tournament_id, teams.tournament_id) AS tournament_id, COALESCE(pot_tournaments.name, team_tournaments.name) AS tournament_name')
             ->join('pots', 'pots.id = teams.pot_id', 'left')
-            ->join('tournaments', 'tournaments.id = pots.tournament_id', 'left');
+            ->join('tournaments AS pot_tournaments', 'pot_tournaments.id = pots.tournament_id', 'left')
+            ->join('tournaments AS team_tournaments', 'team_tournaments.id = teams.tournament_id', 'left');
 
         if ($selectedTournamentId > 0) {
             $builder->groupStart()
                 ->where('pots.tournament_id', $selectedTournamentId)
-                ->orWhere('teams.pot_id IS NULL', null, false)
+                ->orGroupStart()
+                    ->where('teams.pot_id IS NULL', null, false)
+                    ->where('teams.tournament_id', $selectedTournamentId)
+                ->groupEnd()
                 ->groupEnd();
         }
 
@@ -638,12 +916,169 @@ private function destroyTeam(int $id, string $mode)
         return $potId > 0 ? $potId : null;
     }
 
+    private function normalizeTournamentId($value): ?int
+    {
+        $value = trim((string) ($value ?? ''));
+        if ($value === '' || $value === '0' || ! ctype_digit($value)) {
+            return null;
+        }
+
+        $tournamentId = (int) $value;
+        return $tournamentId > 0 ? $tournamentId : null;
+    }
+
     private function allowsUnassignedTeams(): bool
     {
         return trim((string) ($this->request->getPost('manager_context') ?? '')) === 'import';
     }
 
-    private function findDuplicateTeamInScope(string $teamName, ?int $targetPotId = null, ?int $excludeTeamId = null): ?array
+    private function normalizeBulkTeamId($value): ?int
+    {
+        $value = trim((string) ($value ?? ''));
+        if ($value === '' || ! ctype_digit($value)) {
+            return null;
+        }
+
+        $teamId = (int) $value;
+        return $teamId > 0 ? $teamId : null;
+    }
+
+    private function filterChangedBulkPayload(array $teamsPayload): array
+    {
+        $changed = [];
+
+        foreach ($teamsPayload as $teamId => $rowData) {
+            if (! is_array($rowData)) {
+                continue;
+            }
+
+            if ($this->bulkRowHasChanges($rowData)) {
+                $changed[$teamId] = $rowData;
+            }
+        }
+
+        return $changed;
+    }
+
+    private function bulkRowHasChanges(array $rowData): bool
+    {
+        return trim((string) ($rowData['__changed'] ?? '')) === '1';
+    }
+
+    private function applyTeamUpdate(int $id, array $data, bool $allowsUnassigned): array
+    {
+        $team = $this->teamModel->find($id);
+        if ($team === null) {
+            return [
+                'ok' => false,
+                'message' => 'Team tidak ditemukan.',
+                'validation' => [],
+            ];
+        }
+
+        $pot = isset($team['pot_id']) && $team['pot_id'] !== null ? $this->potWithTournament((int) $team['pot_id']) : null;
+        if ($team['pot_id'] !== null && $pot === null) {
+            return [
+                'ok' => false,
+                'message' => 'Pot team tidak ditemukan.',
+                'validation' => [],
+            ];
+        }
+
+        if ($pot !== null && ! $this->isPotEditable($pot)) {
+            return [
+                'ok' => false,
+                'message' => 'Tournament sudah finished. Team tidak bisa diubah.',
+                'validation' => [],
+            ];
+        }
+
+        if (! $this->validateData($data, $this->rules())) {
+            return [
+                'ok' => false,
+                'message' => 'Perubahan team belum valid.',
+                'validation' => $this->validator->getErrors(),
+            ];
+        }
+
+        $targetPotId = $this->normalizePotId($data['pot_id'] ?? $team['pot_id']);
+        $requestedTournamentId = $this->normalizeTournamentId($data['tournament_id'] ?? $team['tournament_id'] ?? null);
+        $targetPot = $targetPotId !== null ? $this->potWithTournament($targetPotId) : null;
+
+        if ($targetPot !== null && $requestedTournamentId !== null && (int) ($targetPot['tournament_id'] ?? 0) !== $requestedTournamentId) {
+            $targetPotId = null;
+            $targetPot = null;
+        }
+
+        $targetTournamentId = $targetPot !== null
+            ? (int) ($targetPot['tournament_id'] ?? 0)
+            : $requestedTournamentId;
+
+        if (! $allowsUnassigned && $targetPotId === null) {
+            return [
+                'ok' => false,
+                'message' => 'Pot tujuan wajib dipilih.',
+                'validation' => [],
+            ];
+        }
+
+        if ($allowsUnassigned && $targetTournamentId <= 0 && $targetPotId !== null) {
+            return [
+                'ok' => false,
+                'message' => 'Tournament team wajib dipilih.',
+                'validation' => [],
+            ];
+        }
+
+        if ($targetPotId !== null && $targetPot === null) {
+            return [
+                'ok' => false,
+                'message' => 'Pot tujuan tidak ditemukan.',
+                'validation' => [],
+            ];
+        }
+
+        if ($targetPot !== null && ! $this->isPotEditable($targetPot)) {
+            return [
+                'ok' => false,
+                'message' => 'Tournament sudah finished. Team tidak bisa dipindah.',
+                'validation' => [],
+            ];
+        }
+
+        $name = trim((string) ($data['name'] ?? ''));
+        $sortOrder = trim((string) ($data['sort_order'] ?? ''));
+        $finalName = $name === '' ? (string) $team['name'] : $name;
+
+        if (($duplicate = $this->findDuplicateTeamInScope($finalName, $targetPotId, $id, $targetTournamentId)) !== null) {
+            return [
+                'ok' => false,
+                'message' => $this->duplicateTeamMessage($finalName, $duplicate, $targetPotId),
+                'validation' => [],
+            ];
+        }
+
+        $this->teamModel->update($id, [
+            'tournament_id' => $targetTournamentId > 0 ? $targetTournamentId : null,
+            'pot_id' => $targetPotId,
+            'name' => $finalName,
+            'sort_order' => $sortOrder === '' ? (int) $team['sort_order'] : (int) $sortOrder,
+        ]);
+
+        if (array_key_exists('member_text', $data)) {
+            $this->syncMembersFromText($id, (string) ($data['member_text'] ?? ''));
+        }
+
+        return [
+            'ok' => true,
+            'message' => 'Team berhasil diperbarui.',
+            'validation' => [],
+            'potId' => $targetPotId ?? 0,
+            'previousPotId' => (int) ($team['pot_id'] ?? 0),
+        ];
+    }
+
+    private function findDuplicateTeamInScope(string $teamName, ?int $targetPotId = null, ?int $excludeTeamId = null, ?int $targetTournamentId = null): ?array
     {
         $normalizedTeamName = $this->normalizeName($teamName);
         if ($normalizedTeamName === '') {
@@ -651,7 +1086,7 @@ private function destroyTeam(int $id, string $mode)
         }
 
         $builder = $this->teamModel
-            ->select('teams.id, teams.pot_id, teams.name, pots.name AS pot_name, pots.tournament_id')
+            ->select('teams.id, teams.tournament_id, teams.pot_id, teams.name, pots.name AS pot_name, COALESCE(pots.tournament_id, teams.tournament_id) AS tournament_id')
             ->join('pots', 'pots.id = teams.pot_id', 'left');
 
         if ($excludeTeamId !== null) {
@@ -663,9 +1098,20 @@ private function destroyTeam(int $id, string $mode)
             if ($targetPot !== null) {
                 $builder->groupStart()
                     ->where('pots.tournament_id', (int) $targetPot['tournament_id'])
-                    ->orWhere('teams.pot_id IS NULL', null, false)
+                    ->orGroupStart()
+                        ->where('teams.pot_id IS NULL', null, false)
+                        ->where('teams.tournament_id', (int) $targetPot['tournament_id'])
+                    ->groupEnd()
                     ->groupEnd();
             }
+        } elseif ($targetTournamentId !== null && $targetTournamentId > 0) {
+            $builder->groupStart()
+                ->where('pots.tournament_id', $targetTournamentId)
+                ->orGroupStart()
+                    ->where('teams.pot_id IS NULL', null, false)
+                    ->where('teams.tournament_id', $targetTournamentId)
+                ->groupEnd()
+                ->groupEnd();
         }
 
         foreach ($builder->findAll() as $team) {
