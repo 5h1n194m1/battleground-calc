@@ -310,29 +310,100 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | PROFESSIONAL SEARCH ENGINE
+    |--------------------------------------------------------------------------
+    */
+
+    const normalize = (value) => String(value || '')
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const indexedRows = rows.map((row) => {
+        const raw = normalize(
+            String(row.getAttribute('data-search-text') || '')
+        );
+
+        return {
+            row,
+            raw,
+            tokens: raw.split(' ').filter(Boolean),
+        };
+    });
+
+    let debounceTimer = null;
+
     const render = () => {
-        const keyword = String(input?.value || '').trim().toLowerCase();
+
+        const keyword = normalize(input?.value || '');
+
+        if (keyword === '') {
+
+            indexedRows.forEach(({ row }) => {
+                row.hidden = false;
+            });
+
+            if (meta) {
+                meta.textContent = `${total} team`;
+            }
+
+            if (emptyState) {
+                emptyState.classList.add('d-none');
+            }
+
+            return;
+        }
+
+        const terms = keyword.split(' ').filter(Boolean);
+
         let visibleCount = 0;
 
-        rows.forEach((row) => {
-            const haystack = String(row.getAttribute('data-search-text') || '').toLowerCase();
-            const matched = keyword === '' || haystack.includes(keyword);
-            row.hidden = !matched;
+        indexedRows.forEach((item) => {
+
+            const matched = terms.every((term) => {
+
+                if (item.raw.includes(term)) {
+                    return true;
+                }
+
+                return item.tokens.some((token) =>
+                    token.startsWith(term)
+                );
+            });
+
+            item.row.hidden = !matched;
+
             if (matched) {
-                visibleCount += 1;
+                visibleCount++;
             }
         });
 
         if (meta) {
-            meta.textContent = keyword === '' ? `${total} team` : `${visibleCount} hasil`;
+            meta.textContent =
+                visibleCount > 0
+                    ? `${visibleCount} hasil ditemukan`
+                    : 'Tidak ada hasil';
         }
 
         if (emptyState) {
-            emptyState.classList.toggle('d-none', visibleCount !== 0);
+            emptyState.classList.toggle(
+                'd-none',
+                visibleCount > 0
+            );
         }
     };
 
-    input?.addEventListener('input', render);
+    input?.addEventListener('input', () => {
+
+        clearTimeout(debounceTimer);
+
+        debounceTimer = setTimeout(() => {
+            requestAnimationFrame(render);
+        }, 120);
+    });
     clearButton?.addEventListener('click', () => {
         if (!input) {
             return;

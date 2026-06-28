@@ -61,8 +61,7 @@ class TournamentController extends BaseController
             return $this->response->setJSON($this->jsonPayload('Tournament berhasil ditambahkan.', [
                 'status'      => 'success',
                 'tournamentId'=> $id,
-                'redirectUrl' => site_url('tournaments/' . $id . '/pots'),
-            ]));
+                'redirectUrl' => site_url('tournaments'),            ]));
         }
 
         return redirect()->to(site_url('tournaments'))->with('success', 'Tournament berhasil ditambahkan.');
@@ -101,7 +100,7 @@ class TournamentController extends BaseController
             throw PageNotFoundException::forPageNotFound('Tournament tidak ditemukan.');
         }
 
-        $data = $this->request->getPost(['name', 'status']);
+        $data = $this->request->getPost(['name', 'status', 'redirect_to']);
 
         if (! $this->validateData($data, $this->rules())) {
             return $this->errorResponse('Perubahan tournament belum valid.', $isAjax, $this->validator->getErrors());
@@ -184,7 +183,58 @@ class TournamentController extends BaseController
             throw PageNotFoundException::forPageNotFound('Tournament tidak ditemukan.');
         }
 
-        $this->tournamentModel->delete($id);
+        $db = db_connect();
+
+        try {
+            $db->transException(true)->transStart();
+
+            // Cascade delete: scores -> team_members -> teams -> pots -> tournament
+            $potIds = array_map(
+                static fn (array $pot): int => (int) $pot['id'],
+                $db->table('pots')->select('id')->where('tournament_id', $id)->get()->getResultArray()
+            );
+
+            if ($potIds !== []) {
+                $db->table('scores')->whereIn('pot_id', $potIds)->delete();
+            }
+
+            $teamIds = array_map(
+                static fn (array $team): int => (int) $team['id'],
+                $db->table('teams')
+                    ->select('id')
+                    ->groupStart()
+                        ->whereIn('pot_id', $potIds !== [] ? $potIds : [0])
+                        ->orWhere('tournament_id', $id)
+                    ->groupEnd()
+                    ->get()
+                    ->getResultArray()
+            );
+
+            if ($teamIds !== []) {
+                $db->table('team_members')->whereIn('team_id', $teamIds)->delete();
+                $db->table('teams')->whereIn('id', $teamIds)->delete();
+            }
+
+            if ($potIds !== []) {
+                $db->table('pots')->whereIn('id', $potIds)->delete();
+            }
+
+            $this->tournamentModel->delete($id);
+
+            $db->transComplete();
+        } catch (\Throwable $e) {
+            if ($db->transStatus() !== false) {
+                $db->transRollback();
+            }
+
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON($this->jsonPayload('Gagal menghapus tournament: ' . $e->getMessage(), [
+                    'status' => 'error',
+                ]));
+            }
+
+            return redirect()->to($targetUrl)->with('error', 'Gagal menghapus tournament.');
+        }
 
         if ($isAjax) {
             return $this->response->setJSON($this->jsonPayload('Tournament berhasil dihapus.', [

@@ -1725,20 +1725,12 @@ textarea[readonly] {
 }
 
 .auto-save-status {
-    display: none;
-    margin-bottom: 0.55rem;
-    padding: 0.38rem 0.6rem;
-    border-radius: 6px;
-    border: 1px solid var(--app-border);
-    background: rgba(255, 255, 255, 0.03);
-    font-size: 0.78rem;
-    font-weight: 600;
-    line-height: 1.35;
+    display: none !important;
 }
 
 .auto-save-status[data-state="error"],
 .auto-save-status[data-state="saved"] {
-    display: inline-flex;
+    display: none !important;
 }
 
 .auto-save-status:empty {
@@ -3504,3 +3496,1358 @@ body.auth-page {
     font-size: 0.76rem;
     white-space: nowrap;
 }
+
+
+/* =========================
+   PROFESSIONAL NAVBAR ENHANCEMENTS
+   ========================= */
+.app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    backdrop-filter: blur(18px);
+    background: linear-gradient(180deg, rgba(7, 12, 19, 0.98), rgba(7, 12, 19, 0.92)) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.app-topbar .container-fluid {
+    min-height: 72px;
+}
+
+.app-brand {
+    gap: 0.75rem;
+    color: var(--app-text) !important;
+}
+
+.app-brand:hover {
+    color: #ffffff !important;
+}
+
+.app-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(96, 165, 250, 0.34);
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.9), rgba(15, 23, 42, 0.95));
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24);
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.app-brand-name {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.app-brand-subtitle {
+    font-size: 0.78rem;
+    color: var(--app-text-faint);
+}
+
+.app-topbar-links {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.app-nav-link-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--app-text) !important;
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.app-nav-link-chip:hover,
+.app-nav-link-chip:focus {
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(96, 165, 250, 0.4);
+    transform: translateY(-1px);
+    color: #fff !important;
+}
+
+.app-user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.app-user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.95), rgba(15, 23, 42, 0.95));
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.app-user-copy {
+    min-width: 0;
+}
+
+.app-user-name {
+    font-size: 0.94rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-user-role {
+    font-size: 0.78rem;
+    color: var(--app-text-faint);
+}
+
+/* =========================
+   SCORE PAGE IMPROVEMENTS
+   ========================= */
+.score-page-workspace:not(.is-manager-open) .score-team-manager-panel {
+    display: none !important;
+}
+
+.score-page-workspace .score-page-main,
+.score-page-workspace .score-side-panel {
+    min-width: 0;
+}
+
+.score-page-workspace .score-team-manager-panel .team-manager-card {
+    border: 1px solid rgba(96, 165, 250, 0.16);
+    background: linear-gradient(180deg, rgba(10, 16, 26, 0.98), rgba(7, 12, 19, 0.98));
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+.score-page-workspace .team-manager-head {
+    padding: 1rem 1rem 0.4rem;
+}
+
+.score-page-workspace .team-manager-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.score-page-workspace .team-manager-subtitle {
+    margin-top: 0.35rem;
+    color: var(--app-text-faint);
+    line-height: 1.45;
+}
+
+.score-page-workspace .team-manager-summary-bar {
+    margin: 0.85rem 0.9rem 0;
+    padding: 0.55rem 0.7rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.score-page-workspace .team-manager-list-head,
+.score-page-workspace .team-manager-form-head {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.score-page-workspace .team-manager-actions .btn {
+    min-width: 0;
+}
+
+/* Better mobile navbar spacing */
+@media (max-width: 1199.98px) {
+    .app-topbar .navbar-collapse {
+        padding: 0.5rem 0 0.95rem;
+    }
+
+    .app-topbar-links {
+        gap: 0.5rem;
+    }
+
+    .app-user-pill {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .app-brand-subtitle {
+        display: none;
+    }
+
+    .app-nav-link-chip {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .app-user-pill {
+        width: 100%;
+    }
+}
+
+/* =========================
+   MINIMAL GLOBAL CMS
+   ========================= */
+.app-global-cms-sidebar {
+    width: 280px;
+}
+
+@media (min-width: 1200px) {
+    body.has-global-cms .navbar .container-fluid {
+        padding-left: calc(280px + 1.2rem);
+    }
+
+    body.has-global-cms .app-main,
+    body.has-global-cms .app-footer {
+        margin-left: 280px;
+    }
+
+    body.has-global-cms.app-global-cms-collapsed .navbar .container-fluid {
+        padding-left: 1.25rem;
+    }
+}
+
+.app-global-cms-brand {
+    padding: 0.9rem 0.9rem 0.75rem;
+}
+
+.app-global-cms-user {
+    margin: 0.85rem 0.85rem 0;
+    padding: 0.72rem 0.78rem;
+}
+
+.app-global-cms-body {
+    padding: 0.75rem 0.85rem 0.9rem;
+}
+
+.app-global-cms-section-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.app-global-cms-search-wrap,
+.app-global-cms-context-card {
+    display: none !important;
+}
+
+.app-global-cms-nav {
+    gap: 0.55rem;
+}
+
+.app-global-cms-nav-link {
+    padding: 0.72rem 0.78rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.app-global-cms-nav-link:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.app-global-cms-nav-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* =========================
+   MINIMAL NAVBAR
+   ========================= */
+.app-topbar {
+    backdrop-filter: blur(16px);
+    background: linear-gradient(180deg, rgba(7, 12, 19, 0.97), rgba(7, 12, 19, 0.90)) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-topbar .container-fluid {
+    min-height: 66px;
+}
+
+.app-brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+}
+
+.app-brand-name {
+    font-size: 0.98rem;
+}
+
+.app-brand-subtitle {
+    font-size: 0.76rem;
+}
+
+.app-topbar-links {
+    gap: 0.42rem;
+}
+
+.app-nav-link-chip {
+    min-height: 38px;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.89rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.app-user-pill {
+    padding: 0.44rem 0.72rem;
+    border-radius: 14px;
+}
+
+.app-user-avatar {
+    width: 36px;
+    height: 36px;
+}
+
+.app-user-name {
+    font-size: 0.92rem;
+}
+
+.app-user-role {
+    font-size: 0.75rem;
+}
+
+.nav-sidebar-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+}
+
+/* =========================
+   SCORE / TEAM MANAGER DOCK
+   ========================= */
+.score-page-shell {
+    min-height: calc(100vh - 92px);
+}
+
+.score-page-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: start;
+}
+
+.score-page-workspace.is-manager-open {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+}
+
+.score-side-panel {
+    min-width: 0;
+    align-self: start;
+}
+
+.score-team-manager-panel {
+    min-width: 0;
+    display: none;
+}
+
+.score-page-workspace.is-manager-open .score-team-manager-panel {
+    display: block;
+    position: sticky;
+    top: 78px;
+    align-self: start;
+}
+
+.score-team-manager-panel .team-manager-card {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 98px);
+    max-height: calc(100dvh - 98px);
+    border-radius: 16px;
+    border: 1px solid rgba(96, 165, 250, 0.16);
+    background: linear-gradient(180deg, rgba(10, 16, 26, 0.98), rgba(7, 12, 19, 0.99));
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+}
+
+.score-team-manager-panel .team-manager-head {
+    padding: 1rem 1rem 0.65rem;
+}
+
+.score-team-manager-panel .team-manager-title {
+    font-size: 1.04rem;
+    font-weight: 800;
+}
+
+.score-team-manager-panel .team-manager-subtitle {
+    margin-top: 0.28rem;
+    color: var(--app-text-faint);
+    line-height: 1.45;
+}
+
+.score-team-manager-panel .team-manager-cms-body {
+    display: flex !important;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    gap: 0.7rem;
+    padding: 0.85rem 0.9rem 0.9rem;
+}
+
+.score-team-manager-panel .team-manager-summary-bar {
+    margin: 0;
+    padding: 0.62rem 0.78rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.score-team-manager-panel .team-manager-list-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.score-team-manager-panel .team-manager-list {
+    max-height: none;
+    flex: 1;
+}
+
+.score-team-manager-panel .team-manager-form-shell {
+    flex: 0 0 auto;
+    max-height: 38vh;
+    overflow: auto;
+}
+
+.score-team-manager-panel .team-manager-list-head,
+.score-team-manager-panel .team-manager-form-head {
+    top: 0;
+}
+
+@media (max-width: 1199.98px) {
+    .score-page-workspace.is-manager-open {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .score-page-workspace.is-manager-open .score-team-manager-panel {
+        position: relative;
+        top: auto;
+    }
+
+    .score-team-manager-panel .team-manager-card {
+        height: auto;
+        max-height: none;
+    }
+}
+
+
+
+/* =========================================================
+   SCORE PAGE: DOCKED MINI TEAM MANAGER (desktop)
+   ========================================================= */
+@media (min-width: 1200px) {
+    #scorePageHost .score-page-workspace.is-manager-open {
+        align-items: start;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+    }
+
+    #scorePageHost .score-side-panel {
+        position: fixed;
+        top: 84px;
+        right: max(16px, calc((100vw - 1720px) / 2 + 16px));
+        width: min(420px, calc(100vw - 32px));
+        height: calc(100dvh - 100px);
+        min-height: 0;
+        align-self: start;
+        z-index: 1025;
+        display: block;
+    }
+
+    #scorePageHost .score-team-manager-panel {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-card {
+        height: 100%;
+        max-height: none;
+        border-radius: 18px;
+        border: 1px solid rgba(96, 165, 250, 0.16);
+        background: linear-gradient(180deg, rgba(10, 16, 26, 0.99), rgba(7, 12, 19, 0.99));
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.30);
+        overflow: hidden;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-cms-body {
+        display: flex !important;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        height: auto;
+        overflow: hidden;
+        gap: 0.7rem;
+        padding: 0.8rem 0.9rem 0.9rem;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-list-shell {
+        flex: 1 1 56%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-form-shell {
+        flex: 1 1 44%;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-list {
+        max-height: none;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+}
+
+/* keep the panel normal on smaller screens */
+@media (max-width: 1199.98px) {
+    #scorePageHost .score-side-panel,
+    #scorePageHost .score-team-manager-panel {
+        position: static;
+        width: auto;
+        height: auto;
+    }
+}
+
+/* sidebar cleanup: more minimal and professional */
+.app-global-cms-section-label {
+    display: none;
+}
+
+.app-global-cms-nav-link {
+    padding: 0.78rem 0.82rem;
+}
+
+.app-global-cms-nav-meta {
+    display: none;
+}
+
+.app-global-cms-nav-copy {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.app-global-cms-nav-text {
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+/* ==================================================
+   SCORE TOOLBAR / MINI MANAGER CLICKABILITY FIX
+   - keep header buttons clickable
+   - keep team manager dock sticky on the right
+   - avoid overlap between right dock and action bar
+   ================================================== */
+#scorePageHost .score-page-header,
+#scorePageHost .score-page-actions,
+#scorePageHost .score-page-actions-left,
+#scorePageHost .score-page-actions-right {
+    position: relative;
+    z-index: 30;
+}
+
+#scorePageHost .score-page-header {
+    align-items: flex-start;
+}
+
+#scorePageHost .score-page-actions {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+}
+
+#scorePageHost .score-page-actions-left,
+#scorePageHost .score-page-actions-right {
+    justify-content: flex-start;
+    margin-left: 0;
+}
+
+#scorePageHost .score-page-actions-right {
+    flex: 1 1 auto;
+}
+
+#scorePageHost .score-page-actions-right .btn,
+#scorePageHost .score-page-actions-left .btn {
+    position: relative;
+    z-index: 31;
+    pointer-events: auto;
+}
+
+#scorePageHost .score-page-workspace {
+    align-items: start;
+}
+
+@media (min-width: 1200px) {
+    #scorePageHost .score-page-workspace.is-manager-open {
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    #scorePageHost .score-side-panel {
+        position: sticky;
+        top: 84px;
+        align-self: start;
+        width: auto;
+        height: calc(100dvh - 100px);
+        min-height: 0;
+        z-index: 10;
+        display: block;
+    }
+
+    #scorePageHost .score-team-manager-panel {
+        display: block !important;
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-card {
+        position: relative;
+        top: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-body {
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    #scorePageHost .score-side-panel {
+        position: relative;
+        top: 0;
+        height: auto;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-card {
+        position: relative;
+        top: 0;
+        height: auto;
+        min-height: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #scorePageHost .score-page-actions {
+        justify-content: flex-start !important;
+    }
+
+    #scorePageHost .score-page-actions-right {
+        width: 100%;
+    }
+}
+
+/* ===========================================================
+   SCORE PAGE: controller buttons + docked manager click fix
+   =========================================================== */
+#scorePageHost {
+    position: relative;
+}
+
+#scorePageHost .score-page-header,
+#scorePageHost .score-page-actions,
+#scorePageHost .score-page-actions-left,
+#scorePageHost .score-page-actions-right {
+    position: relative;
+    z-index: 60;
+}
+
+#scorePageHost .score-page-actions {
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: flex-start;
+    isolation: isolate;
+}
+
+#scorePageHost .score-page-actions > * {
+    pointer-events: auto;
+}
+
+#scorePageHost .score-page-main {
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+}
+
+#scorePageHost .score-side-panel {
+    min-width: 0;
+    position: relative;
+    z-index: 5;
+}
+
+#scorePageHost .score-team-manager-panel {
+    display: none;
+    min-width: 0;
+}
+
+#scorePageHost .score-page-workspace.is-manager-open .score-team-manager-panel {
+    display: block;
+}
+
+@media (min-width: 1200px) {
+    #scorePageHost .score-page-workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    /* Push the dock a bit lower so it never covers controller buttons */
+    #scorePageHost .score-team-manager-panel .team-manager-card {
+        position: sticky;
+        top: 146px;
+        height: calc(100vh - 158px);
+        overflow: hidden;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-body {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-list {
+        overscroll-behavior: contain;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    #scorePageHost .score-page-workspace {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+    }
+
+    #scorePageHost .score-team-manager-panel .team-manager-card {
+        position: relative;
+        top: 0;
+        height: auto;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #scorePageHost .score-page-actions {
+        gap: 0.45rem;
+    }
+}
+
+
+/* ============================================================
+   UI REPAIR: NAVBAR / GLOBAL CMS / SCORE TOOLBAR / MANAGER
+   Goal:
+   - keep navbar aligned and readable when global CMS is open
+   - make controller buttons clickable
+   - keep Mini Team Manager sticky with its own scroll
+   - reduce overlap and visual clutter
+   ============================================================ */
+
+@media (min-width: 1200px) {
+    body.has-global-cms .navbar .container-fluid {
+        max-width: none;
+        padding-left: calc(252px + 1rem);
+        padding-right: 1rem;
+        transition: padding-left 0.24s ease;
+    }
+
+    body.has-global-cms .app-main,
+    body.has-global-cms .app-footer {
+        margin-left: 252px;
+        transition: margin-left 0.24s ease;
+    }
+
+    body.has-global-cms.app-global-cms-collapsed .navbar .container-fluid {
+        padding-left: 1rem;
+    }
+
+    body.has-global-cms.app-global-cms-collapsed .app-main,
+    body.has-global-cms.app-global-cms-collapsed .app-footer {
+        margin-left: 0;
+    }
+}
+
+/* Slimmer, cleaner admin sidebar */
+.app-global-cms-sidebar {
+    width: 252px;
+}
+
+.app-global-cms-brand,
+.app-global-cms-user {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+}
+
+.app-global-cms-nav-link {
+    padding: 0.74rem 0.8rem;
+}
+
+.app-global-cms-brand-subtitle,
+.app-global-cms-user-role,
+.app-global-cms-nav-meta {
+    display: none !important;
+}
+
+/* Keep toolbar and controller buttons above any panel */
+.score-page-shell {
+    overflow: visible;
+}
+
+.score-page-header {
+    position: relative;
+    z-index: 3;
+    gap: 0.55rem;
+}
+
+.score-page-actions {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    width: 100%;
+    margin-left: 0;
+}
+
+.score-page-actions-left,
+.score-page-actions-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.score-page-actions-right {
+    justify-content: flex-start;
+    margin-left: 0;
+}
+
+.score-page-actions .btn,
+.score-page-actions a,
+.score-page-actions form,
+.score-page-actions button {
+    position: relative;
+    z-index: 5;
+    pointer-events: auto;
+}
+
+.score-page-actions .js-hide-controller,
+.score-page-actions .js-team-manager-toggle,
+.score-page-actions .js-show-controller {
+    position: relative;
+    z-index: 6;
+}
+
+/* Main content + sticky mini manager, without overlaying the toolbar */
+.score-page-workspace {
+    align-items: start;
+    gap: 1rem;
+}
+
+.score-page-workspace.is-manager-open {
+    grid-template-columns: minmax(0, 1fr) 392px !important;
+}
+
+.score-page-main {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+}
+
+.score-side-panel {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.score-page-workspace.is-manager-open .score-team-manager-panel {
+    display: block !important;
+    position: sticky;
+    top: 88px;
+    align-self: start;
+}
+
+.score-team-manager-panel {
+    min-width: 0;
+}
+
+.score-team-manager-panel .team-manager-card {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 108px);
+    max-height: calc(100dvh - 108px);
+    overflow: hidden;
+}
+
+.score-team-manager-panel .team-manager-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.score-team-manager-panel .team-manager-list-shell,
+.score-team-manager-panel .team-manager-form-shell {
+    min-height: 0;
+}
+
+/* Keep controller-hidden mode stable */
+.score-page-shell.is-controller-hidden .controller-only,
+.score-page-shell.is-controller-hidden .auto-save-status,
+.score-page-shell.is-controller-hidden .score-lock-banner {
+    display: none !important;
+}
+
+.score-page-shell.is-controller-hidden .score-page-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.score-page-shell.is-controller-hidden .score-team-manager-panel {
+    display: none !important;
+}
+
+/* Responsive stacking */
+@media (max-width: 1199.98px) {
+    .app-global-cms-sidebar {
+        width: min(312px, calc(100vw - 20px));
+    }
+
+    body.has-global-cms .navbar .container-fluid,
+    body.has-global-cms .app-main,
+    body.has-global-cms .app-footer {
+        margin-left: 0;
+        padding-left: 1rem;
+    }
+
+    .score-page-workspace,
+    .score-page-workspace.is-manager-open {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .score-page-workspace.is-manager-open .score-team-manager-panel {
+        position: relative;
+        top: 0;
+    }
+
+    .score-team-manager-panel .team-manager-card {
+        height: auto;
+        max-height: none;
+    }
+
+    .score-team-manager-panel .team-manager-body {
+        max-height: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .score-page-actions {
+        gap: 0.45rem;
+    }
+
+    .score-page-actions-left,
+    .score-page-actions-right {
+        width: 100%;
+    }
+
+    .score-page-actions .btn,
+    .score-page-actions a,
+    .score-page-actions form {
+        width: auto;
+    }
+}
+
+
+
+/* ===== FINAL NAVBAR + TEAM MANAGER REPAIR ===== */
+
+/* prevent navbar overlap */
+.navbar.app-topbar{
+    position:sticky;
+    top:0;
+    z-index:1200!important;
+}
+
+body.has-global-cms .app-main{
+    position:relative;
+    z-index:1;
+}
+
+/* keep navbar content aligned */
+@media (min-width:1200px){
+    body.has-global-cms .app-topbar .container-fluid{
+        padding-left:280px!important;
+    }
+
+    body.has-global-cms.app-global-cms-collapsed .app-topbar .container-fluid{
+        padding-left:1rem!important;
+    }
+}
+
+/* stable score layout */
+.score-page-shell{
+    overflow:visible!important;
+}
+
+.score-page-workspace{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 390px!important;
+    gap:1rem!important;
+    align-items:start!important;
+}
+
+/* sticky manager */
+.score-side-panel{
+    position:sticky!important;
+    top:92px!important;
+    align-self:start!important;
+    z-index:5!important;
+}
+
+.score-team-manager-panel{
+    position:relative!important;
+    display:block!important;
+    width:100%!important;
+}
+
+.score-team-manager-panel .team-manager-card{
+    height:calc(100vh - 110px)!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+}
+
+.score-team-manager-panel .team-manager-body{
+    overflow-y:auto!important;
+    flex:1!important;
+    min-height:0!important;
+}
+
+/* buttons always clickable */
+.score-page-actions,
+.score-page-header{
+    position:relative!important;
+    z-index:50!important;
+}
+
+.score-page-actions .btn,
+.score-page-actions button,
+.score-page-actions a{
+    position:relative!important;
+    z-index:60!important;
+    pointer-events:auto!important;
+}
+
+/* hidden manager state */
+.score-page-workspace:not(.is-manager-open){
+    grid-template-columns:minmax(0,1fr)!important;
+}
+
+.score-page-workspace:not(.is-manager-open) .score-side-panel{
+    display:none!important;
+}
+
+/* cleaner button spacing */
+.score-page-actions{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:.55rem!important;
+    align-items:center!important;
+}
+
+.score-page-actions-left,
+.score-page-actions-right{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:.55rem!important;
+    align-items:center!important;
+}
+
+/* mobile */
+@media (max-width:1199px){
+    .score-page-workspace{
+        grid-template-columns:1fr!important;
+    }
+
+    .score-side-panel{
+        position:relative!important;
+        top:0!important;
+    }
+
+    .score-team-manager-panel .team-manager-card{
+        height:auto!important;
+    }
+
+    body.has-global-cms .app-topbar .container-fluid{
+        padding-left:1rem!important;
+    }
+}
+
+
+/* ======================================================
+   CLEAN FINAL REPAIR
+   - lower the top navbar a little
+   - move the Mini Team Manager a bit lower
+   - remove the extra ugly scroll area
+   - keep controller buttons clickable
+   - keep the layout professional and stable
+   ====================================================== */
+
+.app-topbar{
+    top: 6px;
+    margin-top: 0;
+    z-index: 1205;
+    min-height: 76px;
+}
+
+.app-topbar .container-fluid{
+    min-height: 76px;
+}
+
+body.has-global-cms .navbar .container,
+body.has-global-cms .navbar .container-fluid{
+    padding-left: calc(296px + 1rem);
+    padding-right: 1rem;
+}
+
+body.has-global-cms .app-main,
+body.has-global-cms .app-footer{
+    margin-left: 296px;
+}
+
+.app-global-cms-sidebar{
+    top: 72px;
+    height: calc(100vh - 72px);
+}
+
+.app-global-cms-backdrop{
+    z-index: 1138;
+}
+
+.app-global-cms-sidebar{
+    z-index: 1139;
+}
+
+.score-page-header{
+    position: relative;
+    z-index: 30;
+    margin-bottom: 0.35rem;
+}
+
+.score-page-actions{
+    position: relative;
+    z-index: 35;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.score-page-actions-left,
+.score-page-actions-right{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.score-page-actions .btn,
+.score-page-actions button,
+.score-page-actions a{
+    position: relative;
+    z-index: 36;
+    pointer-events: auto;
+}
+
+.score-page-workspace{
+    align-items: start;
+    gap: 1rem;
+}
+
+.score-page-workspace.is-manager-open{
+    grid-template-columns: minmax(0, 1fr) 392px !important;
+}
+
+.score-page-main{
+    min-width: 0;
+    z-index: 2;
+}
+
+.score-side-panel{
+    min-width: 0;
+    z-index: 1;
+    position: sticky;
+    top: 116px;
+    align-self: start;
+}
+
+.score-page-workspace.is-manager-open .score-team-manager-panel{
+    display: block !important;
+}
+
+.score-team-manager-panel{
+    min-width: 0;
+}
+
+.score-team-manager-panel .team-manager-card{
+    height: calc(100vh - 132px);
+    max-height: calc(100vh - 132px);
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(96, 165, 250, 0.18);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+    background: linear-gradient(180deg, rgba(10, 16, 26, 0.98), rgba(7, 12, 19, 0.98));
+    display: flex;
+    flex-direction: column;
+}
+
+.score-team-manager-panel .team-manager-head{
+    padding: 0.95rem 1rem 0.7rem;
+}
+
+.score-team-manager-panel .team-manager-body{
+    overflow: hidden !important;
+    min-height: 0;
+    padding: 0.85rem 0.9rem 0.95rem;
+    display: grid;
+    grid-template-columns: minmax(0, 205px) minmax(0, 1fr);
+    gap: 0.75rem;
+}
+
+.score-team-manager-panel .team-manager-list-shell{
+    min-height: 0;
+    overflow: hidden;
+}
+
+.score-team-manager-panel .team-manager-form-shell{
+    min-height: 0;
+    overflow: hidden;
+}
+
+.score-team-manager-panel .team-manager-list{
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.15rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(96,165,250,.45) transparent;
+}
+
+.score-team-manager-panel .team-manager-list::-webkit-scrollbar{
+    width: 8px;
+}
+
+.score-team-manager-panel .team-manager-list::-webkit-scrollbar-thumb{
+    background: rgba(96,165,250,.35);
+    border-radius: 999px;
+}
+
+.score-team-manager-panel .team-manager-list::-webkit-scrollbar-track{
+    background: transparent;
+}
+
+.team-manager-list-item{
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
+}
+
+.team-manager-title{
+    font-size: 1.02rem;
+}
+
+.team-manager-subtitle{
+    font-size: 0.76rem;
+    line-height: 1.35;
+}
+
+.team-manager-filter label,
+.team-manager-form-head,
+.team-manager-list-head{
+    font-size: 0.82rem;
+}
+
+.team-manager-actions .btn{
+    min-height: 30px;
+}
+
+@media (max-width: 1199.98px){
+    body.has-global-cms .navbar .container,
+    body.has-global-cms .navbar .container-fluid,
+    body.has-global-cms .app-main,
+    body.has-global-cms .app-footer{
+        margin-left: 0;
+        padding-left: 1rem;
+    }
+
+    .score-page-workspace,
+    .score-page-workspace.is-manager-open{
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .score-side-panel{
+        position: relative;
+        top: 0;
+    }
+
+    .score-team-manager-panel .team-manager-card{
+        height: auto;
+        max-height: none;
+    }
+
+    .score-team-manager-panel .team-manager-body{
+        grid-template-columns: 1fr;
+        overflow: visible !important;
+    }
+
+    .score-team-manager-panel .team-manager-list{
+        max-height: 260px;
+    }
+}
+
+@media (max-width: 767.98px){
+    .app-topbar{
+        top: 0;
+    }
+
+    .score-page-actions{
+        gap: 0.45rem;
+    }
+
+    .score-page-actions-left,
+    .score-page-actions-right{
+        width: 100%;
+    }
+}
+

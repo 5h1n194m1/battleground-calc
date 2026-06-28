@@ -35,6 +35,7 @@ class TeamController extends BaseController
 
     public function rosterIndex()
     {
+        $this->cleanupRosterData();
         $tournaments = $this->tournamentModel->orderBy('created_at', 'DESC')->findAll();
         $selectedTournamentKey = trim((string) ($this->request->getGet('tournament_id') ?? 'all'));
         if ($selectedTournamentKey === '') {
@@ -320,11 +321,14 @@ public function managerData()
 
     public function store()
     {
+        $this->cleanupRosterData();
         $isAjax = $this->request->isAJAX();
-        $data = $this->request->getPost(['tournament_id', 'pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']);
+        $data = $this->sanitizeTeamPayload($this->request->getPost(['tournament_id', 'pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']));
         $allowsUnassigned = $this->allowsUnassignedTeams();
         $potId = $this->normalizePotId($data['pot_id'] ?? null);
         $requestedTournamentId = $this->normalizeTournamentId($data['tournament_id'] ?? null);
+
+        $data = $this->sanitizeTeamPayload($data);
 
         if (! $this->validateData($data, $this->rules())) {
             return $this->teamErrorResponse('Data team belum valid.', $isAjax, $this->validator->getErrors());
@@ -355,9 +359,9 @@ public function managerData()
         $existingCount = $potId !== null
             ? $this->teamModel->where('pot_id', $potId)->countAllResults()
             : $this->teamModel->where('pot_id IS NULL', null, false)->countAllResults();
-        $name = trim((string) ($data['name'] ?? ''));
-        $sortOrder = trim((string) ($data['sort_order'] ?? ''));
-        $memberText = (string) ($data['member_text'] ?? '');
+        $name = $this->cleanRosterText((string) ($data['name'] ?? ''), 150);
+        $sortOrder = $this->cleanRosterText((string) ($data['sort_order'] ?? ''), 20);
+        $memberText = $this->cleanRosterText((string) ($data['member_text'] ?? ''), 1000, true);
 
         if ($name === '') {
             $name = $this->nextAvailableTeamName($potId, $existingCount + 1);
@@ -398,8 +402,9 @@ public function managerData()
 
     public function update(int $id)
     {
+        $this->cleanupRosterData();
         $isAjax = $this->request->isAJAX();
-        $data = $this->request->getPost(['tournament_id', 'pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']);
+        $data = $this->sanitizeTeamPayload($this->request->getPost(['tournament_id', 'pot_id', 'name', 'sort_order', 'redirect_to', 'member_text']));
         $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
         $result = $this->applyTeamUpdate($id, $data, $this->allowsUnassignedTeams());
 
@@ -428,9 +433,10 @@ public function managerData()
 
     public function bulkUpdate()
     {
+        $this->cleanupRosterData();
         $redirectTo = trim((string) ($this->request->getPost('redirect_to') ?? current_url()));
         $allowsUnassigned = true;
-        $teamsPayload = $this->request->getPost('teams');
+        $teamsPayload = $this->sanitizeTeamsPayload((array) $this->request->getPost('teams'));
 
         if (! is_array($teamsPayload) || $teamsPayload === []) {
             return redirect()->to($redirectTo)->with('error', 'Belum ada perubahan team yang bisa disimpan.');
@@ -802,7 +808,7 @@ private function destroyTeam(int $id, string $mode)
         foreach ($members as $memberName) {
             $this->teamMemberModel->insert([
                 'team_id'     => $teamId,
-                'player_name' => $memberName,
+                'player_name' => $this->cleanRosterText($memberName, 80),
                 'player_role' => null,
             ]);
         }
@@ -815,22 +821,22 @@ private function destroyTeam(int $id, string $mode)
 
     private function memberListFromText(string $memberText): array
     {
-        $normalizedMemberText = str_replace([";", "
-", "
-"], [",", "
+        $memberText = $this->cleanRosterText($memberText, 1000, true);
+        $memberText = str_replace([";", "
+", ""], [",", "
 ", "
 "], $memberText);
         $chunks = preg_split('/
-|,/', $normalizedMemberText) ?: [];
+|,/', $memberText) ?: [];
         $members = [];
 
         foreach ($chunks as $chunk) {
-            $name = trim($chunk);
+            $name = $this->cleanRosterText($chunk, 80);
             if ($name === '') {
                 continue;
             }
 
-            $members[] = preg_replace('/\s+/', ' ', $name) ?? $name;
+            $members[] = preg_replace('/\s+/u', ' ', $name) ?? $name;
         }
 
         return array_slice(array_values(array_unique($members)), 0, self::MAX_MEMBERS);
@@ -838,9 +844,10 @@ private function destroyTeam(int $id, string $mode)
 
     private function normalizeName(string $value): string
     {
+        $value = $this->cleanRosterText($value, 150);
         $value = strtolower(trim($value));
 
-        return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
+        return preg_replace('/[^a-z0-9]+/u', '', $value) ?? '';
     }
 
     private function potWithTournament(int $potId): ?array
@@ -927,6 +934,95 @@ private function destroyTeam(int $id, string $mode)
         return $tournamentId > 0 ? $tournamentId : null;
     }
 
+    /**
+     * Legacy cleanup removed — data is sanitized at input time via sanitizeTeamPayload().
+     * Full table scan on every request was too expensive for large tournaments.
+     */
+    private function cleanupRosterData(): void
+    {
+        // no-op: sanitization handled at input time
+    }
+
+    private function sanitizeTeamPayload(array $data): array
+    {
+        if (isset($data['name'])) {
+            $data['name'] = $this->cleanRosterText((string) $data['name'], 150);
+        }
+
+        if (isset($data['member_text'])) {
+            $data['member_text'] = $this->cleanRosterText((string) $data['member_text'], 1000, true);
+        }
+
+        if (isset($data['redirect_to'])) {
+            $data['redirect_to'] = $this->cleanRosterText((string) $data['redirect_to'], 255);
+        }
+
+        if (isset($data['sort_order'])) {
+            $data['sort_order'] = $this->cleanRosterText((string) $data['sort_order'], 20);
+        }
+
+        if (isset($data['tournament_id'])) {
+            $data['tournament_id'] = $this->cleanRosterText((string) $data['tournament_id'], 20);
+        }
+
+        if (isset($data['pot_id'])) {
+            $data['pot_id'] = $this->cleanRosterText((string) $data['pot_id'], 20);
+        }
+
+        return $data;
+    }
+
+    private function sanitizeTeamsPayload(array $teamsPayload): array
+    {
+        foreach ($teamsPayload as $teamId => $rowData) {
+            if (! is_array($rowData)) {
+                continue;
+            }
+
+            $teamsPayload[$teamId] = $this->sanitizeTeamPayload($rowData);
+        }
+
+        return $teamsPayload;
+    }
+
+    private function cleanRosterText(string $value, int $maxLength = 150, bool $allowLineBreaks = false): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        if (! mb_check_encoding($value, 'UTF-8')) {
+            $converted = @iconv('UTF-8', 'UTF-8//IGNORE', $value);
+            if ($converted !== false) {
+                $value = $converted;
+            }
+        }
+
+        $value = str_replace("\0", '', $value);
+
+        if ($allowLineBreaks) {
+            $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value) ?? $value;
+            $value = preg_replace('/\r\n?/', "\n", $value) ?? $value;
+        } else {
+            $value = preg_replace('/[\x00-\x1F\x7F]/u', '', $value) ?? $value;
+        }
+
+        if ($allowLineBreaks) {
+            // Collapse horizontal whitespace only, preserve newlines
+            $value = preg_replace('/[^\S\n]+/u', ' ', $value) ?? $value;
+        } else {
+            $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+        }
+        $value = trim($value);
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $maxLength);
+        }
+
+        return substr($value, 0, $maxLength);
+    }
+
+
     private function allowsUnassignedTeams(): bool
     {
         return trim((string) ($this->request->getPost('manager_context') ?? '')) === 'import';
@@ -993,6 +1089,8 @@ private function destroyTeam(int $id, string $mode)
             ];
         }
 
+        $data = $this->sanitizeTeamPayload($data);
+
         if (! $this->validateData($data, $this->rules())) {
             return [
                 'ok' => false,
@@ -1046,8 +1144,8 @@ private function destroyTeam(int $id, string $mode)
             ];
         }
 
-        $name = trim((string) ($data['name'] ?? ''));
-        $sortOrder = trim((string) ($data['sort_order'] ?? ''));
+        $name = $this->cleanRosterText((string) ($data['name'] ?? ''), 150);
+        $sortOrder = $this->cleanRosterText((string) ($data['sort_order'] ?? ''), 20);
         $finalName = $name === '' ? (string) $team['name'] : $name;
 
         if (($duplicate = $this->findDuplicateTeamInScope($finalName, $targetPotId, $id, $targetTournamentId)) !== null) {

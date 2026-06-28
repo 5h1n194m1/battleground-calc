@@ -37,24 +37,32 @@ class RegisterController extends BaseController
                 ->with('error', lang('Auth.registerDisabled'));
         }
 
+        $rules = [
+            'username' => 'required|min_length[3]|max_length[30]',
+            'email'    => 'required|valid_email',
+            'password' => 'required|min_length[8]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
         $users = $this->getUserProvider();
-        $rules = $this->getValidationRules();
 
-        if (! $this->validateData($this->request->getPost(), $rules, [], config('Auth')->DBGroup)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-
-        $allowedPostFields = array_keys($rules);
-        $user              = $users->createNewUser($this->request->getPost($allowedPostFields));
-
-        if ($user->username === null) {
-            $user->username = null;
-        }
+        $user = $users->createNewUser([
+            'username' => trim((string) $this->request->getPost('username')),
+            'email'    => trim((string) $this->request->getPost('email')),
+            'password' => (string) $this->request->getPost('password'),
+        ]);
 
         try {
             $users->save($user);
         } catch (ValidationException) {
-            return redirect()->back()->withInput()->with('errors', $users->errors());
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $users->errors());
         }
 
         $user = $users->findById($users->getInsertID());
@@ -63,11 +71,9 @@ class RegisterController extends BaseController
 
         Events::trigger('register', $user);
 
-        // aktifkan user langsung
         $user->activate();
         $users->save($user);
 
-        // sengaja TIDAK auto-login
         return redirect()->to('/login')
             ->with('message', 'Registrasi berhasil. Silakan login.');
     }
@@ -81,10 +87,5 @@ class RegisterController extends BaseController
         }
 
         return $provider;
-    }
-
-    protected function getValidationRules(): array
-    {
-        return setting('Validation.registration') ?? [];
     }
 }

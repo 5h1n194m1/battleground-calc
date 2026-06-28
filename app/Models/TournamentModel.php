@@ -13,6 +13,7 @@ class TournamentModel extends Model
     protected $table         = 'tournaments';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
+    protected $useAutoIncrement = true;
     protected $allowedFields = ['name', 'status'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';

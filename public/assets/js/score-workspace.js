@@ -31,7 +31,15 @@
         }
     };
 
+    const refreshRequestCsrf = (options = {}) => {
+        if (options.body instanceof FormData) {
+            ensureFormDataCsrf(options.body);
+        }
+    };
+
     const runRequest = async (url, options = {}) => {
+        refreshRequestCsrf(options);
+
         const response = await fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -351,7 +359,7 @@
         clearTimeout(form[timerKey]);
         form.dataset[queueKey] = '1';
         setStatus(form, 'dirty', '');
-        form[timerKey] = window.setTimeout(saver, 450);
+        form[timerKey] = window.setTimeout(saver, 80);
     };
 
     const createHeadCell = (gameNo) => {
@@ -428,6 +436,7 @@
                             autocomplete="off"
                             list="${lookupId}"
                         >
+                        <input type="hidden" name="team_row_state[${teamKey}]" value="new">
                         <datalist id="${lookupId}" class="js-table-team-datalist"></datalist>
                     </div>
                 </div>
@@ -1338,6 +1347,60 @@
         });
     };
 
+    const bindAddPotForms = () => {
+        qsa('.js-add-pot-form').forEach((form) => {
+            if (form.dataset.addPotBound === '1') {
+                return;
+            }
+
+            form.dataset.addPotBound = '1';
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                if (form.dataset.submitting === '1') {
+                    return;
+                }
+
+                const submitButton = event.submitter || qs('button[type="submit"]', form);
+                const statusForm = qs('.js-score-bulk-form');
+                form.dataset.submitting = '1';
+                clearPendingScoreSaves();
+
+                if (statusForm) {
+                    setStatus(statusForm, 'saving', 'Membuat pot baru...');
+                }
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.dataset.originalText = submitButton.textContent;
+                    submitButton.textContent = '...';
+                }
+
+                try {
+                    const formData = new FormData(form);
+                    const payload = await request(form.action, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    window.location.href = payload.redirectUrl || window.location.href;
+                } catch (error) {
+                    if (statusForm) {
+                        setStatus(statusForm, 'error', error.message || 'Gagal menambahkan pot.');
+                    }
+
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = submitButton.dataset.originalText || 'Tambah Pot';
+                    }
+
+                    form.dataset.submitting = '0';
+                }
+            });
+        });
+    };
+
     const bindQuickAddTeamForms = () => {
         qsa('form[action*="teams/store"]').forEach((form) => {
             if (form.dataset.quickTeamBound === '1') {
@@ -1419,6 +1482,9 @@
                 updateRowNumbers(table);
 
                 const emptyState = qs('.js-pot-empty-state', form);
+                window.setTimeout(() => {
+                    form.dispatchEvent(new CustomEvent('bgcalc:save-now'));
+                }, 60);
                 if (emptyState) {
                     emptyState.hidden = true;
                 }
@@ -1904,8 +1970,12 @@
 
         updateCompactVars(form);
 
-        const saveNow = async () => {
+        const saveNow = async (options = {}) => {
             if (form.dataset.canManage !== '1' || form.dataset.saving === '1') {
+                if (form.dataset.saving === '1') {
+                    form.dataset.saveQueued = '1';
+                }
+
                 return;
             }
 
@@ -1915,7 +1985,8 @@
 
             try {
                 const payload = hasTeamRows(form) ? await saveBulk(form) : await savePotMeta(form);
-                setStatus(form, 'saved', payload.reloadPage ? (payload.message || '') : '');
+                const successMessage = payload.message || 'Perubahan berhasil disimpan.';
+                setStatus(form, 'saved', (payload.reloadPage || options.showMessage) ? successMessage : '');
 
                 if (payload.reloadPage) {
                     rememberScrollPosition();
@@ -1934,6 +2005,113 @@
                     form._saveTimer = window.setTimeout(saveNow, 120);
                 }
             }
+        };
+
+        form.addEventListener('bgcalc:save-now', async () => {
+            if (form.dataset.canManage !== '1') {
+                return;
+            }
+
+            if (form._saveTimer) {
+                clearTimeout(form._saveTimer);
+                form._saveTimer = null;
+            }
+
+            await saveNow({ showMessage: true });
+        });
+
+        const bindManualSaveButtons = () => {
+            const card = form.closest('.pot-module-card') || document;
+            qsa('.js-save-score-now', card)
+                .filter((button) => button.getAttribute('form') === form.id)
+                .forEach((button) => {
+                    if (button.dataset.manualSaveBound === '1') {
+                        return;
+                    }
+
+                    button.dataset.manualSaveBound = '1';
+                    button.addEventListener('click', async (event) => {
+                        event.preventDefault();
+
+                        if (form.dataset.canManage !== '1') {
+                            return;
+                        }
+
+                        if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                            return;
+                        }
+
+                        if (form._saveTimer) {
+                            clearTimeout(form._saveTimer);
+                            form._saveTimer = null;
+                        }
+
+                        const originalText = button.dataset.originalText || button.textContent || 'Simpan';
+                        button.dataset.originalText = originalText;
+                        button.disabled = true;
+                        button.textContent = 'Menyimpan...';
+
+                        try {
+                            await saveNow({ showMessage: true });
+                        } finally {
+                            button.disabled = false;
+                            button.textContent = button.dataset.originalText || 'Simpan';
+                        }
+                    });
+                });
+        };
+
+        const bindClearScoreButtons = () => {
+            const card = form.closest('.pot-module-card') || document;
+            qsa('.js-clear-score-data', card).forEach((button) => {
+                if (button.dataset.clearScoreBound === '1') {
+                    return;
+                }
+
+                button.dataset.clearScoreBound = '1';
+                button.addEventListener('click', async () => {
+                    if (button.disabled || form.dataset.canManage !== '1') {
+                        return;
+                    }
+
+                    const ok = await openDeleteConfirmPopup({
+                        title: 'Clear Data Skor',
+                        message: 'Kosongkan semua Rank dan Kill di pot ini? Team dan pot tetap disimpan.',
+                        submitText: 'Clear Data',
+                    });
+
+                    if (!ok) {
+                        return;
+                    }
+
+                    if (form._saveTimer) {
+                        clearTimeout(form._saveTimer);
+                        form._saveTimer = null;
+                    }
+
+                    const originalText = button.dataset.originalText || button.textContent || 'Clear Data';
+                    button.dataset.originalText = originalText;
+                    button.disabled = true;
+                    button.textContent = '...';
+
+                    try {
+                        qsa('.js-score-input', form).forEach((input) => {
+                            if (!input.disabled) {
+                                input.value = '';
+                            }
+                        });
+
+                        if (table) {
+                            updateAllRows(table, placementMap);
+                        }
+
+                        await saveNow();
+                    } finally {
+                        button.disabled = false;
+                        button.textContent = button.dataset.originalText || 'Clear Data';
+                    }
+                });
+            });
         };
 
         const bindTableTeamNameComboboxes = () => {
@@ -2009,7 +2187,8 @@
                         input.value = exactMatch.name || '';
                     }
 
-                    scheduleSave(form, saveNow);
+                    form._saveNow = saveNow;
+                scheduleSave(form, saveNow);
                 });
             });
         };
@@ -2035,6 +2214,7 @@
                     bindLookupToolbars();
                 }
 
+                form._saveNow = saveNow;
                 scheduleSave(form, saveNow);
             };
 
@@ -2044,6 +2224,8 @@
         });
 
         bindTableTeamNameComboboxes();
+        bindManualSaveButtons();
+        bindClearScoreButtons();
 
         const addGameButton = qs('.js-add-game', form.closest('.pot-module-card') || document);
         const removeGameButton = qs('.js-remove-game', form.closest('.pot-module-card') || document);
@@ -2099,6 +2281,7 @@
                 bindFormInputs(form);
                 updateAllRows(table, placementMap);
                 updateRowNumbers(table);
+                form._saveNow = saveNow;
                 scheduleSave(form, saveNow);
             });
         }
@@ -2118,6 +2301,7 @@
                 updateCompactVars(form);
                 updateAllRows(table, placementMap);
                 updateRowNumbers(table);
+                form._saveNow = saveNow;
                 scheduleSave(form, saveNow);
             });
         }
@@ -2131,6 +2315,7 @@
     const initScoreWorkspace = () => {
         bindPotMetaForms();
         qsa('.js-score-bulk-form').forEach((form) => bindFormInputs(form));
+        bindAddPotForms();
         bindQuickAddTeamForms();
         bindLocalAddTeamButtons();
         bindAdvanceSelectedButtons();
@@ -2143,6 +2328,23 @@
         bindScoreTextZoomControls();
         restoreScrollAfterDelete();
     };
+
+    
+    window.addEventListener('beforeunload', () => {
+        // Clear any pending save timers to avoid post-unload errors.
+        // Async saves cannot reliably complete during beforeunload.
+        try {
+            qsa('.js-score-bulk-form').forEach((form) => {
+                if (form._saveTimer) {
+                    clearTimeout(form._saveTimer);
+                    form._saveTimer = null;
+                }
+            });
+        } catch (error) {
+            // ignore
+        }
+    });
+
 
     document.addEventListener('DOMContentLoaded', initScoreWorkspace);
     window.initScoreWorkspace = initScoreWorkspace;

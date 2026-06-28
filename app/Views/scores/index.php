@@ -13,7 +13,7 @@ $isAdmin = auth()->user()?->inGroup('admin') ?? false;
 $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
 ?>
 
-<div class="score-page-shell score-page-shell-centered" id="scorePageHost" data-current-tournament-id="<?= esc((string) $tournament['id']) ?>">
+<div class="score-page-shell" id="scorePageHost" data-current-tournament-id="<?= esc((string) $tournament['id']) ?>">
     <div class="page-header page-header-compact score-page-header">
         <div class="page-title-block">
             <form action="<?= site_url('tournaments/update/' . $tournament['id']) ?>" method="post" class="score-title-editor">
@@ -56,7 +56,7 @@ $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
                 <a href="<?= site_url('teams/export-template?tournament_id=' . (int) $tournament['id']) ?>" class="btn btn-outline-primary btn-sm app-btn controller-only">Export CSV</a>
 
                 <?php if ($canManage): ?>
-                    <form action="<?= site_url('pots/store') ?>" method="post" class="m-0 d-inline-flex controller-only">
+                    <form action="<?= site_url('pots/store') ?>" method="post" class="m-0 d-inline-flex controller-only js-add-pot-form">
                         <?= csrf_field() ?>
                         <input type="hidden" name="tournament_id" value="<?= esc((string) $tournament['id']) ?>">
                         <input type="hidden" name="redirect_to" value="__new_pot_scores__">
@@ -129,8 +129,8 @@ $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
                 <?= view('teams/_manager_workspace', [
                     'managerId'            => 'score-cms-manager',
                     'managerContext'       => 'score',
-                    'managerTitle'         => 'Team',
-                    'managerDescription'   => '',
+                    'managerTitle'         => 'Mini Team Manager',
+                    'managerDescription'   => 'Kelola team dan pindahkan ke pot tanpa pindah halaman.',
                     'tournaments'          => $tournaments,
                     'pots'                 => $managerPots,
                     'selectedTournamentId' => (int) $tournament['id'],
@@ -139,6 +139,8 @@ $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
                     'currentPotId'         => (int) $currentPotId,
                     'canManage'            => $canManage,
                     'allowUnassigned'      => false,
+                    'showTournamentFilter' => false,
+                    'fixedTournamentId'    => (int) $tournament['id'],
                 ]) ?>
             </aside>
         </div>
@@ -163,8 +165,8 @@ $currentStatusValue = (string) ($tournament['status'] ?? 'belum_mulai');
                     <div class="modal-body">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select" required>
-                            <?php foreach ($statusOptions as $value => $label): ?>
-                                <option value="<?= esc($value) ?>" <?= $status === $value ? 'selected' : '' ?>>
+                            <?php foreach ($statusOptions as $statusKey => $label): ?>
+                                <option value="<?= esc($statusKey) ?>" <?= $status === $statusKey ? 'selected' : '' ?>>
                                     <?= esc($label) ?>
                                 </option>
                             <?php endforeach; ?>

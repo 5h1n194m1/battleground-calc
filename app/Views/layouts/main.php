@@ -30,6 +30,7 @@ $hasGlobalCms = $layoutUser !== null && $layoutUser->inGroup('admin');
     <main class="app-main py-3">
         <div class="container-fluid app-container px-3 px-xl-4">
             <div id="ajaxFlashHost" class="app-flash-host"></div>
+            <?= $this->include('partials/flash') ?>
             <?= $this->renderSection('content') ?>
         </div>
     </main>

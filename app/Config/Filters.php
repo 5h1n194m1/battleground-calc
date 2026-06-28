@@ -40,7 +40,6 @@ class Filters extends BaseFilters
     public array $required = [
         'before' => [
             'localonly',
-            'invalidchars',
         ],
         'after' => [
             'appheaders',

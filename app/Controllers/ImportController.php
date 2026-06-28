@@ -351,7 +351,7 @@ class ImportController extends BaseController
 
     private function limitText(string $value, int $maxLength = 120): string
     {
-        $value = trim($value);
+        $value = $this->cleanImportText($value, true);
         if ($value === '') {
             return '';
         }
@@ -362,6 +362,33 @@ class ImportController extends BaseController
 
         return substr($value, 0, $maxLength);
     }
+    private function cleanImportText(string $value, bool $allowLineBreaks = false): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        if (! mb_check_encoding($value, 'UTF-8')) {
+            $converted = @iconv('UTF-8', 'UTF-8//IGNORE', $value);
+            if ($converted !== false) {
+                $value = $converted;
+            }
+        }
+
+        $value = str_replace("\0", '', $value);
+
+        if ($allowLineBreaks) {
+            $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value) ?? $value;
+            $value = preg_replace('/\r\n?/', "\n", $value) ?? $value;
+        } else {
+            $value = preg_replace('/[\x00-\x1F\x7F]/u', '', $value) ?? $value;
+        }
+
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
+    }
+
     private function detectDelimiter(string $sample): string
     {
         $candidates = [',', ';', "\t"];
@@ -538,7 +565,8 @@ class ImportController extends BaseController
             return '';
         }
 
-        $value = trim((string) ($row[$index] ?? ''));
+        $value = (string) ($row[$index] ?? '');
+        $value = $this->cleanImportText($value, true);
         return $value === 'NULL' ? '' : $value;
     }
 

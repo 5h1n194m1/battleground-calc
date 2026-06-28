@@ -86,6 +86,9 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
                     Naik Pot
                 </button>
                 <button type="button" class="btn btn-outline-info btn-sm toolbar-btn js-sort-standings">Urutkan</button>
+                <button type="submit" form="<?= esc($formId) ?>" class="btn btn-primary btn-sm toolbar-btn js-save-score-now" <?= $disabledAttr ?>>Simpan</button>
+                <button type="button" class="btn btn-outline-warning btn-sm toolbar-btn js-clear-score-data" <?= $disabledAttr ?>>Clear Data</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm toolbar-btn js-hide-controller">Hide Controller</button>
 
                 <button type="button" class="btn btn-outline-primary btn-sm toolbar-btn js-add-game" id="<?= esc($addButtonId) ?>" <?= $disabledAttr ?>>+ Game</button>
                 <button type="button" class="btn btn-outline-danger btn-sm toolbar-btn js-remove-game" id="<?= esc($removeButtonId) ?>" <?= $disabledAttr ?>>- Game</button>
@@ -157,7 +160,6 @@ $placementColWidth= $allowSideScroll ? 36 : max(36, 46 - (($gameCount - 1) * 2))
         <input type="hidden" name="tournament_id" value="<?= esc((string) $tournamentId) ?>">
         <input type="hidden" name="redirect_to" value="<?= current_url() ?>">
         <input type="hidden" name="game_count" id="<?= esc($gameCountId) ?>" class="js-game-count" value="<?= esc((string) count($gameNos)) ?>">
-        <div class="auto-save-status" data-state="idle" aria-live="polite"></div>
 
         <div class="score-table-shell<?= $allowSideScroll ? ' is-scrollable' : '' ?>" style="--team-col-width: <?= esc((string) $teamColWidth) ?>px; --score-col-width: <?= esc((string) $scoreColWidth) ?>px; --placement-col-width: <?= esc((string) $placementColWidth) ?>px;">
             <table class="table table-bordered score-table score-calculator-table mb-0" id="<?= esc($tableId) ?>">

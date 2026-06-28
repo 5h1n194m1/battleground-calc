@@ -168,8 +168,6 @@
             const sidebar = document.getElementById('globalCmsPanel');
             const toggleButtons = Array.from(document.querySelectorAll('.js-global-cms-toggle'));
             const backdrop = document.querySelector('.js-global-cms-backdrop');
-            const searchInput = document.querySelector('.js-global-cms-search');
-            const items = Array.from(document.querySelectorAll('[data-global-cms-item]'));
             const collapseKey = 'bgcalc-global-cms-collapsed';
 
             if (!sidebar || toggleButtons.length === 0) {
@@ -183,14 +181,6 @@
                 });
             };
 
-            const runFilter = () => {
-                const keyword = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
-                items.forEach((item) => {
-                    const haystack = String(item.getAttribute('data-search-text') || '').toLowerCase();
-                    item.hidden = keyword !== '' && !haystack.includes(keyword);
-                });
-            };
-
             try {
                 if (window.innerWidth >= 1200 && sessionStorage.getItem(collapseKey) === '1') {
                     body.classList.add('app-global-cms-collapsed');
@@ -200,7 +190,6 @@
             }
 
             syncToggleState();
-            runFilter();
 
             const toggleSidebar = () => {
                 if (window.innerWidth >= 1200) {
@@ -227,10 +216,6 @@
                     body.classList.remove('app-global-cms-mobile-open');
                     syncToggleState();
                 });
-            }
-
-            if (searchInput) {
-                searchInput.addEventListener('input', runFilter);
             }
 
             window.addEventListener('resize', () => {

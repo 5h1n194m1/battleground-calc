@@ -94,7 +94,9 @@ class PotController extends BaseController
         $this->potOrderService->movePot($tournamentId, $potId, $desiredOrder);
 
         $redirectTo = trim((string) ($data['redirect_to'] ?? ''));
-        $targetUrl = $redirectTo !== '' ? $redirectTo : site_url('pots/' . $potId . '/scores');
+        $targetUrl = $redirectTo !== '' && $redirectTo !== '__new_pot_scores__'
+            ? $redirectTo
+            : site_url('pots/' . $potId . '/scores');
 
         if ($isAjax) {
             return $this->response->setJSON([
@@ -109,7 +111,7 @@ class PotController extends BaseController
 
         if ($redirectTo !== '') {
             if ($redirectTo === '__new_pot_scores__') {
-                return redirect()->to(site_url('pots/' . $potId . '/scores'))->with('success', 'Pot berhasil ditambahkan.');
+                return redirect()->to($targetUrl)->with('success', 'Pot berhasil ditambahkan.');
             }
 
             return redirect()->to($redirectTo)->with('success', 'Pot berhasil ditambahkan.');

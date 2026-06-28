@@ -197,6 +197,7 @@ class ScoreController extends BaseController
 
         $teamNames = $this->request->getPost('team_names');
         $teamMembersText = $this->request->getPost('team_members_text');
+        $teamRowState = $this->request->getPost('team_row_state');
         $gameCount = max(1, (int) ($this->request->getPost('game_count') ?? 1));
         $rawScores = $this->request->getPost('scores');
         if (! is_array($rawScores)) {
@@ -239,6 +240,7 @@ class ScoreController extends BaseController
         $attachedTempTargets = [];
         $teamNames = is_array($teamNames) ? $teamNames : [];
         $teamMembersText = is_array($teamMembersText) ? $teamMembersText : [];
+        $teamRowState = is_array($teamRowState) ? $teamRowState : [];
         $teamKeys = array_values(array_unique(array_merge(
             array_map('strval', array_keys($teamNames)),
             array_map('strval', array_keys($rawScores)),
@@ -335,7 +337,9 @@ class ScoreController extends BaseController
                 continue;
             }
 
-            if ($teamName === '' && $memberText === '' && ! $hasScoreValue) {
+            $isTempRow = trim((string) ($teamRowState[$teamKey] ?? '')) === 'new';
+
+            if ($teamName === '' && $memberText === '' && ! $hasScoreValue && ! $isTempRow) {
                 continue;
             }
 
