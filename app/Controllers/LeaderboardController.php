@@ -14,7 +14,7 @@ class LeaderboardController extends BaseController
         $this->potModel = new PotModel();
     }
 
-    public function pot(int $potId): string
+    public function pot(string $potId): string
     {
         $pot = $this->potModel
             ->select('pots.*, tournaments.name AS tournament_name, tournaments.id AS tournament_id')
@@ -36,8 +36,8 @@ class LeaderboardController extends BaseController
             ->getResultArray();
 
         return view('leaderboard/pot', [
-            'pageTitle'   => 'Leaderboard Pot',
-            'pot'         => $pot,
+            'pageTitle' => 'Leaderboard Pot',
+            'pot' => $pot,
             'leaderboard' => $rows,
         ]);
     }

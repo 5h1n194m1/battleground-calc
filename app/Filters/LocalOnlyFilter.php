@@ -13,6 +13,10 @@ class LocalOnlyFilter implements FilterInterface
 
     public function before(RequestInterface $request, $arguments = null)
     {
+        if (ENVIRONMENT !== 'development') {
+            return null;
+        }
+
         if (PHP_SAPI === 'cli') {
             return null;
         }

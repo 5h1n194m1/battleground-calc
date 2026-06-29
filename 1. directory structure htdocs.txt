@@ -1,0 +1,115 @@
+1. directory structure htdocs/
+jadi semua file ditaruh di folder ini langsung tanpa ada folder lain htodocs langsung ke semua file project ini
+2. index.php
+<?php
+
+    
+    $_SERVER['CI_ENVIRONMENT'] = 'production'; 
+	define('ENVIRONMENT', 'production');
+Kint::$enabled_mode = false;
+
+
+use CodeIgniter\Boot;
+use Config\Paths;
+
+/*
+ *---------------------------------------------------------------
+ * CHECK PHP VERSION
+ *---------------------------------------------------------------
+ */
+
+$minPhpVersion = '8.2'; // If you update this, don't forget to update `spark`.
+if (version_compare(PHP_VERSION, $minPhpVersion, '<')) {
+    $message = sprintf(
+        'Your PHP version must be %s or higher to run CodeIgniter. Current version: %s',
+        $minPhpVersion,
+        PHP_VERSION,
+    );
+
+    header('HTTP/1.1 503 Service Unavailable.', true, 503);
+    echo $message;
+
+    exit(1);
+}
+
+/*
+ *---------------------------------------------------------------
+ * SET THE CURRENT DIRECTORY
+ *---------------------------------------------------------------
+ */
+
+// Path to the front controller (this file)
+define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR);
+
+// Ensure the current directory is pointing to the front controller's directory
+if (getcwd() . DIRECTORY_SEPARATOR !== FCPATH) {
+    chdir(FCPATH);
+}
+
+/*
+ *---------------------------------------------------------------
+ * BOOTSTRAP THE APPLICATION
+ *---------------------------------------------------------------
+ * This process sets up the path constants, loads and registers
+ * our autoloader, along with Composer's, loads our constants
+ * and fires up an environment-specific bootstrapping.
+ */
+
+// LOAD OUR PATHS CONFIG FILE
+// This is the line that might need to be changed, depending on your folder structure.
+require FCPATH . '../app/Config/Paths.php';
+// ^^^ Change this line if you move your application folder
+
+$paths = new Paths();
+
+// LOAD THE FRAMEWORK BOOTSTRAP FILE
+require $paths->systemDirectory . '/Boot.php';
+
+exit(Boot::bootWeb($paths));
+
+
+.env
+CI_ENVIRONMENT = development
+
+app.baseURL = 'https://zoelposapp.xo.je/'
+app.forceGlobalSecureRequests = false
+app.CSPEnabled = true
+CI_DEBUG = false
+
+database.default.hostname = sql105.infinityfree.com
+database.default.database = if0_42292902_battleground_calc
+database.default.username = if0_42292902
+database.default.password = zB0ZlMT2Q6X6gE
+database.default.DBDriver = MySQLi
+
+session.driver = 'CodeIgniter\Session\Handlers\FileHandler'
+
+logger.threshold = 4
+
+
+.htaccess
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Redirect semua request ke folder public
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+log error terakhir
+CRITICAL - 2026-06-29 00:44:58 --> ErrorException: include_once(/home/vol14_7/infinityfree.com/if0_42292902/htdocs/vendor/codeigniter4/framework/system/Helpers/kint_helper.php): Failed to open stream: No such file or directory
+[Method: GET, Route: /]
+in SYSTEMPATH/Common.php on line 675.
+ 1 SYSTEMPATH/Common.php(675): CodeIgniter\Debug\Exceptions->errorHandler(2, 'include_once(/home/vol14_7/infinityfree.com/if0_42292902/htdocs/vendor/codeigniter4/framework/system/Helpers/kint_helper.php): Failed to open stream: No such file or directory', '/home/vol14_7/infinityfree.com/if0_42292902/htdocs/vendor/codeigniter4/framework/system/Common.php', 675)
+ 2 SYSTEMPATH/Common.php(675): include_once()
+ 3 SYSTEMPATH/Autoloader/Autoloader.php(527): helper([...])
+ 4 SYSTEMPATH/Boot.php(385): CodeIgniter\Autoloader\Autoloader->initializeKint(false)
+ 5 SYSTEMPATH/Boot.php(57): CodeIgniter\Boot::initializeKint()
+ 6 FCPATH/index.php(63): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+
+
+error di halaman utama memunculkan error sbb
+This page isn’t working
+zoelposapp.xo.je is currently unable to handle this request.
+HTTP ERROR 500

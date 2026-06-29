@@ -11,7 +11,7 @@ class App extends BaseConfig
     /**
      * @var list<string>
      */
-    public array $allowedHostnames = ['localhost', '127.0.0.1'];
+    public array $allowedHostnames = [];
 
     public string $indexPage = 'index.php';
     public string $uriProtocol = 'REQUEST_URI';

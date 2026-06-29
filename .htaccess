@@ -1,0 +1,16 @@
+# ----------------------------------------------------------------------
+# CodeIgniter 4 Production-Ready Root Redirection
+# Redirects all traffic from root to the /public folder securely.
+# ----------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Prevent access to sensitive files
+    RewriteRule ^\.(env|git|gitignore|editorconfig)$ - [F,L]
+    RewriteRule ^(composer\.json|composer\.lock|spark|phpunit\.xml\.dist|battleground_calc\.sql)$ - [F,L]
+    RewriteRule ^(app|writable|tests|vendor)/ - [F,L]
+
+    # Rewrite all requests to public folder
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
